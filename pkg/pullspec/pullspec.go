@@ -226,6 +226,48 @@ func NewOperatorCSVFromPath(path string, pullSpecHeuristic PullSpecHeuristic) (*
 	return NewOperatorCSVFromFile(file, os.DirFS(dir), pullSpecHeuristic)
 }
 
+func FromDirectory(path string, pullSpecHeuristic PullSpecHeuristic) ([]*OperatorCSV, error) {
+	operatorCSVs := []*OperatorCSV{}
+
+	err := filepath.Walk(path, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+
+		log.Println(info.Name(), info.IsDir())
+
+		if info.IsDir() ||
+			!(strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml")) {
+			log.Printf("skipping non-yaml file without errors: %+v \n", info.Name())
+			return nil
+		}
+
+		log.Printf("visited file or dir: %q\n", path)
+		csv, err := NewOperatorCSVFromPath(path, pullSpecHeuristic)
+
+		if err != nil && errors.Is(err, ErrNotClusterServiceVersion) {
+			log.Printf("skipping file because it's not a ClusterServiceVersion: %+v \n", info.Name())
+			return nil
+		}
+
+		if err != nil {
+			log.Printf("failure reading the file: %+v \n", info.Name())
+			return err
+		}
+
+		operatorCSVs = append(operatorCSVs, csv)
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("failure walking the directory: %+v \n", err)
+		return nil, err
+	}
+
+	return operatorCSVs, nil
+}
+
 func NewOperatorCSVFromFile(path string, inFs fs.FS, pullSpecHeuristic PullSpecHeuristic) (*OperatorCSV, error) {
 	data := &unstructured.Unstructured{}
 
@@ -551,6 +593,11 @@ func (csv *OperatorCSV) relatedImageEnvPullSpecs() ([]NamedPullSpec, error) {
 
 			if !ok {
 				return nil, errors.New("expected type map")
+			}
+
+			// only look at RELATED_IMAGE env vars
+			if name, ok := envMap["name"]; !(ok && strings.HasPrefix(name.(string), "RELATED_IMAGE_")) {
+				continue
 			}
 
 			if _, hasValueFrom := envMap["valueFrom"]; hasValueFrom {
