@@ -3,37 +3,20 @@ package cmd
 import (
 	"encoding/json"
 	"log"
-	"os"
 	"path/filepath"
 
 	"github.com/operator-framework/operator-manifest-tools/pkg/pullspec"
 	"github.com/spf13/cobra"
 )
 
-var (
-	outputFile string
-)
-
 // extractCmd represents the extract command
 var extractCmd = &cobra.Command{
-	Use:        "extract",
+	Use:        "extract [flags] MANIFEST_DIR .. MANIFEST_DIR",
 	Short:      "Identify all the image references in the CSVs found in MANIFEST_DIR.",
 	Args:       cobra.ExactArgs(1),
-	ArgAliases: []string{"MANIFEST_DIR"},
+	PreRun:     initOutputWriter,
+	PostRun:    closeOutputWriter,
 	Run: func(cmd *cobra.Command, args []string) {
-		outputWriter := cmd.OutOrStdout()
-
-		if outputFile != "-" {
-			f, err := os.OpenFile(outputFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0755)
-			defer f.Close()
-
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			outputWriter = f
-		}
-
 		out := []interface{}{}
 
 		for _, arg := range args {
@@ -52,7 +35,7 @@ var extractCmd = &cobra.Command{
 				}
 
 				for _, pullSpec := range pullSpecs {
-					out = append(out, pullSpec)
+					out = append(out, pullSpec.String())
 				}
 			}
 		}
@@ -68,19 +51,5 @@ var extractCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(extractCmd)
-
-	// extractCmd.PersistentFlags().StringVar(&manifestDir, "manifest_dir", "",
-	//	"The path to the directory containing the manifest files.")
-	extractCmd.PersistentFlags().StringVar(&outputFile, "output", "-",
-		`The path to store the extracted image references. Use - to specify stdout. By default - is used.`)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// extractCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// extractCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	addOutputFlag(extractCmd)
 }

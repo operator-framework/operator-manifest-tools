@@ -1,0 +1,132 @@
+package imageresolver
+
+import (
+	"crypto/sha256"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+)
+
+type ImageResolver interface {
+	ResolveImageReference(imageReference string) (string, error)
+}
+
+type commandRunner interface {
+	Run() (err error)
+	Output() ([]byte, error)
+}
+
+type commandCreator func(name string, arg ...string) commandRunner
+
+type SkopeoImageResolver struct {
+	path     string
+	authFile string
+
+	command commandCreator
+}
+
+func NewSkopeoImageResolver(skopeoPath, authFile string) (*SkopeoImageResolver, error) {
+	if authFile != "" {
+		_, err := os.Stat(authFile)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &SkopeoImageResolver{
+		path:     skopeoPath,
+		authFile: authFile,
+		command: func(name string, args ...string) commandRunner {
+			return exec.Command(name, args...)
+		},
+	}, nil
+}
+
+func getName(imageReference string) string {
+	if strings.Contains(imageReference, "@") {
+		return strings.Split(imageReference, "@")[0]
+	}
+
+	return strings.Split(imageReference, ":")[0]
+}
+
+const (
+	timeout = "300s"
+)
+
+func (skopeo *SkopeoImageResolver) getSkopeoResults(args ...string) ([]byte, map[string]interface{}, error) {
+	baseArgs := []string{"--command-timeout", timeout, "inspect"}
+	name := "skopeo"
+	if skopeo.path != "" {
+		name = skopeo.path
+	}
+	cmd := skopeo.command(name, append(baseArgs, args...)...)
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var skopeoRaw []byte
+	var skopeoJson map[string]interface{}
+
+	skopeoRaw, err = cmd.Output()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = json.Unmarshal(skopeoRaw, &skopeoJson)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return skopeoRaw, skopeoJson, nil
+}
+
+func (skopeo *SkopeoImageResolver) ResolveImageReference(imageReference string) (string, error) {
+	imageName := getName(imageReference)
+	imageReference = fmt.Sprintf("docker://%s", imageReference)
+	args := []string{imageReference}
+
+
+	if skopeo.authFile != "" {
+		args = append(args, "--authFile", skopeo.authFile)
+	}
+
+	retryAttempts := 3
+
+	var err error
+	var skopeoRaw []byte
+	var skopeoJson map[string]interface{}
+
+	for i := 0; i < retryAttempts; i++ {
+		skopeoRaw, skopeoJson, err = skopeo.getSkopeoResults(append(args, "--raw")...)
+		if err != nil {
+			continue
+		}
+
+		if version, ok := skopeoJson["schemaVersion"].(float64); ok && version == 2 {
+			rawDigest := fmt.Sprintf("%x", sha256.Sum256(skopeoRaw))
+			return fmt.Sprintf("%s@sha256:%s", imageName, rawDigest), nil
+		}
+
+		_, skopeoJson, err = skopeo.getSkopeoResults(args...)
+		if err != nil {
+			continue
+		}
+
+		digest, ok := skopeoJson["Digest"].(string)
+
+		if !ok {
+			return "", errors.New("Digest not on response")
+		}
+
+		return fmt.Sprintf("%s@%s", imageName, digest), nil
+	}
+
+	return "", err
+}
