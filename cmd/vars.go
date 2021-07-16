@@ -15,7 +15,7 @@ var (
 )
 
 func addOutputFlag(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVar(&outputFile, "output", "-",
+	cmd.Flags().StringVar(&outputFile, "output", "-",
 		`The path to store the extracted image references. Use - to specify stdout. By default - is used.`)
 }
 

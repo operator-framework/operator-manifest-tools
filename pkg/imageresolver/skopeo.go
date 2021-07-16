@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,8 +16,7 @@ type ImageResolver interface {
 }
 
 type commandRunner interface {
-	Run() (err error)
-	Output() ([]byte, error)
+	CombinedOutput() ([]byte, error)
 }
 
 type commandCreator func(name string, arg ...string) commandRunner
@@ -66,18 +66,12 @@ func (skopeo *SkopeoImageResolver) getSkopeoResults(args ...string) ([]byte, map
 	}
 	cmd := skopeo.command(name, append(baseArgs, args...)...)
 
-	err := cmd.Run()
+	skopeoRaw, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.New(string(skopeoRaw))
 	}
 
-	var skopeoRaw []byte
 	var skopeoJson map[string]interface{}
-
-	skopeoRaw, err = cmd.Output()
-	if err != nil {
-		return nil, nil, err
-	}
 
 	err = json.Unmarshal(skopeoRaw, &skopeoJson)
 	if err != nil {
@@ -104,7 +98,9 @@ func (skopeo *SkopeoImageResolver) ResolveImageReference(imageReference string) 
 	var skopeoJson map[string]interface{}
 
 	for i := 0; i < retryAttempts; i++ {
-		skopeoRaw, skopeoJson, err = skopeo.getSkopeoResults(append(args, "--raw")...)
+		rawArgs := append(args, "--raw")
+		log.Println("skopeo inspect raw args are ", rawArgs)
+		skopeoRaw, skopeoJson, err = skopeo.getSkopeoResults(rawArgs...)
 		if err != nil {
 			continue
 		}
@@ -114,6 +110,7 @@ func (skopeo *SkopeoImageResolver) ResolveImageReference(imageReference string) 
 			return fmt.Sprintf("%s@sha256:%s", imageName, rawDigest), nil
 		}
 
+		log.Println("skopeo inspect args are ", args)
 		_, skopeoJson, err = skopeo.getSkopeoResults(args...)
 		if err != nil {
 			continue

@@ -15,7 +15,7 @@ type lens struct {
 	funcs []func(interface{}) (interface{}, error)
 }
 
-func NewLens() *lensBuilder {
+func newLens() *lensBuilder {
 	return &lensBuilder{
 		funcs: []func(interface{}) (interface{}, error){},
 		path:  []string{},

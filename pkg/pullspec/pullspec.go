@@ -1,16 +1,20 @@
 package pullspec
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"io/fs"
 
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
+	yamlv3 "gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 )
@@ -30,7 +34,7 @@ type namedPullSpec struct {
 }
 
 func (named *namedPullSpec) Name() string {
-	return named.data["name"].(string)
+	return strings.TrimSpace(named.data["name"].(string))
 }
 
 func (named *namedPullSpec) Image() string {
@@ -125,13 +129,20 @@ type RelatedImageEnv struct {
 	namedPullSpec
 }
 
-func (relatedImage *RelatedImageEnv) String() string {
-	return fmt.Sprintf("%s var", relatedImage.Name())
+func (relatedImageEnv *RelatedImageEnv) String() string {
+	return fmt.Sprintf("%s var", relatedImageEnv.Name())
 }
 
-func (relatedImage *RelatedImageEnv) Name() string {
-	text := fmt.Sprintf("%v", relatedImage.data["name"])
-	return strings.ToLower(text[len("RELATED_IMAGE_"):])
+func (relatedImageEnv *RelatedImageEnv) Name() string {
+	text := fmt.Sprintf("%v", relatedImageEnv.data["name"])
+	return strings.TrimSpace(strings.ToLower(text[len("RELATED_IMAGE_"):]))
+}
+
+func (relatedImageEnv *RelatedImageEnv) AsYamlObject() map[string]interface{} {
+	return map[string]interface{}{
+		"name":  relatedImageEnv.Name(),
+		"image": relatedImageEnv.Image(),
+	}
 }
 
 func NewRelatedImageEnv(data map[string]interface{}) *RelatedImageEnv {
@@ -183,6 +194,13 @@ func (annotation *Annotation) Name() string {
 		tag = tag[len("sha256:"):]
 	}
 	return fmt.Sprintf("%s-%s-annotation", image.Registry, tag)
+}
+
+func (annotation *Annotation) AsYamlObject() map[string]interface{} {
+	return map[string]interface{}{
+		"name":  annotation.Name(),
+		"image": annotation.Image(),
+	}
 }
 
 type OperatorCSV struct {
@@ -268,7 +286,11 @@ func FromDirectory(path string, pullSpecHeuristic PullSpecHeuristic) ([]*Operato
 	return operatorCSVs, nil
 }
 
-func NewOperatorCSVFromFile(path string, inFs fs.FS, pullSpecHeuristic PullSpecHeuristic) (*OperatorCSV, error) {
+func NewOperatorCSVFromFile(
+	path string,
+	inFs fs.FS,
+	pullSpecHeuristic PullSpecHeuristic,
+) (*OperatorCSV, error) {
 	data := &unstructured.Unstructured{}
 
 	fileData, err := fs.ReadFile(inFs, path)
@@ -295,16 +317,59 @@ func NewOperatorCSVFromFile(path string, inFs fs.FS, pullSpecHeuristic PullSpecH
 	return csv, nil
 }
 
-func (csv *OperatorCSV) Dump() error {
+func (csv *OperatorCSV) ToYaml() ([]byte, error) {
+	buff := bytes.Buffer{}
+
+	enc := yamlv3.NewEncoder(&buff)
+	err := enc.Encode(&csv.data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return buff.Bytes(), nil
+}
+
+// Dump will dump the csv yaml to a writer if provided or
+// the file the OperatorCSV started from if the filesystem is writable.
+func (csv *OperatorCSV) Dump(writer io.Writer) error {
+	if writer == nil {
+		if reflect.TypeOf(os.DirFS(csv.path)) != reflect.TypeOf(csv.fs) {
+			return errors.New("file system isn't writable")
+		}
+
+		f, err := os.OpenFile(csv.path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+		defer f.Close()
+		if err != nil {
+			return err
+		}
+
+		writer = f
+	}
+
+	b, err := csv.ToYaml()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = writer.Write(b)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (csv *OperatorCSV) HasRelatedImages() bool {
-	return false
+	pullSpecs, _ := csv.relatedImagePullSpecs()
+	return len(pullSpecs) != 0
 }
 
 func (csv *OperatorCSV) HasRelatedImageEnvs() bool {
-	return false
+	pullSpecs, _ := csv.relatedImageEnvPullSpecs()
+	return len(pullSpecs) > 0
 }
 
 func (csv *OperatorCSV) GetPullSpecs() ([]*imagename.ImageName, error) {
@@ -388,8 +453,60 @@ func (csv *OperatorCSV) ReplacePullSpecsEverywhere(replacement map[imagename.Ima
 	return nil
 }
 
-func (csv *OperatorCSV) SetRelatedImages() {
+func (csv *OperatorCSV) SetRelatedImages() error {
+	namedPullspecs, err := csv.namedPullSpecs()
 
+	if err != nil {
+		return err
+	}
+
+	if len(namedPullspecs) == 0 {
+		return nil
+	}
+
+	conflicts := []string{}
+	byName := map[string]NamedPullSpec{}
+	byDigest := map[string]NamedPullSpec{}
+	for _, newPull := range namedPullspecs {
+		fmt.Println("adding", newPull.Name(), reflect.TypeOf(newPull))
+		old, ok := byName[newPull.Name()]
+
+		if !ok {
+			byName[newPull.Name()] = newPull
+			byDigest[newPull.Image()] = newPull
+			continue
+		}
+
+		if old.Image() == newPull.Image() {
+			continue
+		}
+
+		conflicts = append(conflicts, fmt.Sprintf("%s: %s X %s: %s",
+			old.String(), old.Image(), newPull.String(), newPull.Image()))
+	}
+
+	if len(conflicts) > 0 {
+		return fmt.Errorf("%s - Found conflicts when setting relatedImages:\n%s", csv.path, strings.Join(conflicts, "\n"))
+	}
+
+	relatedImages := []map[string]interface{}{}
+
+	for _, p := range byDigest {
+		log.Printf("%s - Set relateImage %s (from %s): %s\n", csv.path, p.Name(), p.String(), p.Image())
+		relatedImages = append(relatedImages, p.AsYamlObject())
+	}
+
+	spec, ok := csv.data.Object["spec"]
+	if !ok {
+		spec = map[string]interface{}{
+			"relatedImages": relatedImages,
+		}
+		csv.data.Object["spec"] = spec
+	} else {
+		spec.(map[string]interface{})["relatedImages"] = relatedImages
+	}
+
+	return nil
 }
 
 var knownAnnotationKeys = StringSlice{"containerImage"}
@@ -443,7 +560,7 @@ func (csv *OperatorCSV) namedPullSpecs() ([]NamedPullSpec, error) {
 	return pullspecs, nil
 }
 
-var relatedImagesLens = NewLens().M("spec").M("relatedImages").Build()
+var relatedImagesLens = newLens().M("spec").M("relatedImages").Build()
 
 func (csv *OperatorCSV) relatedImagePullSpecs() ([]NamedPullSpec, error) {
 	lookupResultSlice, err := relatedImagesLens.L(csv.data.Object)
@@ -477,13 +594,13 @@ func (csv *OperatorCSV) relatedImageEnvPullspecs() ([][]int, error) {
 	return nil, nil
 }
 
-var deploymentLens = NewLens().M("spec").M("install").M("spec").M("deployments").Build()
+var deploymentLens = newLens().M("spec").M("install").M("spec").M("deployments").Build()
 
 func (csv *OperatorCSV) deployments() ([]interface{}, error) {
 	return deploymentLens.L(csv.data.Object)
 }
 
-var initContainerLens = NewLens().M("spec").M("template").M("spec").M("initContainers").Build()
+var initContainerLens = newLens().M("spec").M("template").M("spec").M("initContainers").Build()
 
 func (csv *OperatorCSV) initContainerPullSpecs() ([]NamedPullSpec, error) {
 	deployments, err := csv.deployments()
@@ -519,7 +636,7 @@ func (csv *OperatorCSV) initContainerPullSpecs() ([]NamedPullSpec, error) {
 	return pullspecs, nil
 }
 
-var containerLens = NewLens().M("spec").M("template").M("spec").M("containers").Build()
+var containerLens = newLens().M("spec").M("template").M("spec").M("containers").Build()
 
 func (csv *OperatorCSV) containerPullSpecs() ([]NamedPullSpec, error) {
 	deployments, err := csv.deployments()
@@ -645,9 +762,9 @@ func (csv *OperatorCSV) annotationPullSpecs(keyFilter StringSlice) ([]NamedPullS
 }
 
 var (
-	csvAnnotations         = NewLens().M("metadata").M("annotations").Build()
-	deploymentAnnotations  = NewLens().M("spec").M("template").M("metadata").M("annotations").Build()
-	deploymentsAnnotations = NewLens().
+	csvAnnotations         = newLens().M("metadata").M("annotations").Build()
+	deploymentAnnotations  = newLens().M("spec").M("template").M("metadata").M("annotations").Build()
+	deploymentsAnnotations = newLens().
 				M("spec").M("install").M("spec").M("deployments").
 				Apply(deploymentAnnotations).
 				Build()
@@ -701,7 +818,7 @@ func (csv *OperatorCSV) findAllAnnotations() ([]map[string]interface{}, error) {
 	return annotations, nil
 }
 
-var annotations = NewLens().M("metadata").M("annotations").Build()
+var annotations = newLens().M("metadata").M("annotations").Build()
 
 func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]interface{}, results *[]interface{}, underMetadata bool) error {
 	annos, err := annotations.M(root)
