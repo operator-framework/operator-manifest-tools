@@ -59,26 +59,26 @@ var _ = Describe("lens", func() {
 	})
 
 	It("should work for collecting lists", func() {
-		myLens := newLens().M("c").Apply(NewLens().M("d").Build()).Build()
+		myLens := newLens().M("c").Apply(newLens().M("d").Build()).Build()
 		answer, err := myLens.L(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(Equal([]interface{}{1, 2}))
 
-		myLens = newLens().M("c").Apply(NewLens().M("nothere").Build()).Build()
+		myLens = newLens().M("c").Apply(newLens().M("nothere").Build()).Build()
 		answer, err = myLens.L(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(HaveLen(0))
 
-		myLens = newLens().M("a").Apply(NewLens().M("k").Build()).Build()
+		myLens = newLens().M("a").Apply(newLens().M("k").Build()).Build()
 		answer, err = myLens.L(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
-		myLens = newLens().M("c").Apply(NewLens().M("d").L(0).Build()).Build()
+		myLens = newLens().M("c").Apply(newLens().M("d").L(0).Build()).Build()
 		answer, err = myLens.L(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(HaveLen(0))
 
-		myLens = newLens().M("c").Apply(NewLens().M("d").L(0).Build()).Build()
+		myLens = newLens().M("c").Apply(newLens().M("d").L(0).Build()).Build()
 		_, err = myLens.M(data)
 		Expect(err).To(HaveOccurred())
 	})
