@@ -73,7 +73,7 @@ the resolved, pinned, version.`, "\n", ""),
 			}
 
 			err = resolve(pinCmdData.authFile,
-				pinCmdData.authFile, 
+				pinCmdData.skopeoPath, 
 				inputExtract, 
 				&pinCmdData.outputReplace)
 

@@ -237,7 +237,6 @@ func (annotation *Annotation) AsYamlObject() map[string]interface{} {
 // OperatorCSV represents the CSV data and holds information
 // regarding how to parse the image strings.
 type OperatorCSV struct {
-	fs                fs.FS
 	path              string
 	data              unstructured.Unstructured
 	pullspecHeuristic Heuristic
@@ -267,17 +266,6 @@ const (
 var (
 )
 
-// NewOperatorCSVFromPath creates an OperatorCSV from a path using the provided pullspec heuristic.
-func NewOperatorCSVFromPath(path string, pullSpecHeuristic Heuristic) (*OperatorCSV, error) {
-	dir, file := filepath.Dir(path), filepath.Base(path)
-
-	if dir == "" {
-		dir = "."
-	}
-
-	return NewOperatorCSVFromFile(file, os.DirFS(dir), pullSpecHeuristic)
-}
-
 // FromDirectory creates a NewOperatorCSV from the directory path provided.
 func FromDirectory(path string, pullSpecHeuristic Heuristic) ([]*OperatorCSV, error) {
 	operatorCSVs := []*OperatorCSV{}
@@ -297,7 +285,7 @@ func FromDirectory(path string, pullSpecHeuristic Heuristic) ([]*OperatorCSV, er
 		}
 
 		log.Printf("visited file or dir: %q\n", path)
-		csv, err := NewOperatorCSVFromPath(path, pullSpecHeuristic)
+		csv, err := NewOperatorCSVFromFile(path, pullSpecHeuristic)
 
 		if err != nil && errors.Is(err, ErrNotClusterServiceVersion) {
 			log.Printf("skipping file because it's not a ClusterServiceVersion: %+v \n", info.Name())
@@ -324,12 +312,11 @@ func FromDirectory(path string, pullSpecHeuristic Heuristic) ([]*OperatorCSV, er
 // NewOperatorCSVFromFile creates a NewOperatorCSV from a filepath.
 func NewOperatorCSVFromFile(
 	path string,
-	inFs fs.FS,
 	pullSpecHeuristic Heuristic,
 ) (*OperatorCSV, error) {
 	data := &unstructured.Unstructured{}
 
-	fileData, err := fs.ReadFile(inFs, path)
+	fileData, err := os.ReadFile(path)
 
 	if err != nil {
 		return nil, err
@@ -349,7 +336,6 @@ func NewOperatorCSVFromFile(
 		return nil, err
 	}
 
-	csv.fs = inFs
 	return csv, nil
 }
 
@@ -371,11 +357,7 @@ func (csv *OperatorCSV) ToYaml() ([]byte, error) {
 // the file the OperatorCSV started from if the filesystem is writable.
 func (csv *OperatorCSV) Dump(writer io.Writer) error {
 	if writer == nil {
-		if reflect.TypeOf(os.DirFS(csv.path)) != reflect.TypeOf(csv.fs) {
-			return errors.New("file system isn't writable")
-		}
-
-		f, err := os.OpenFile(csv.path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+		f, err := os.OpenFile(csv.path, os.O_APPEND|os.O_WRONLY, 0755)
 		defer f.Close()
 		if err != nil {
 			return err

@@ -73,7 +73,7 @@ func resolve(
 	input io.Reader,
 	output io.Writer,
 ) error {
-	data, err := io.ReadAll(&resolveCmdData.input)
+	data, err := io.ReadAll(input)
 	if err != nil {
 		return errors.New("error reading data: " + err.Error())
 	}
