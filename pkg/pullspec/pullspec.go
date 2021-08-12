@@ -1,20 +1,26 @@
 package pullspec
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"io/fs"
 
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
+	yamlv3 "gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 )
 
+// NamedPullSpec is an interface that allows for some elements
+// of a pull spec to be generalized.
 type NamedPullSpec interface {
 	fmt.Stringer
 	Name() string
@@ -29,22 +35,27 @@ type namedPullSpec struct {
 	data     map[string]interface{}
 }
 
+// Name returns the name of the pull spec data.
 func (named *namedPullSpec) Name() string {
-	return named.data["name"].(string)
+	return strings.TrimSpace(named.data["name"].(string))
 }
 
+// Image returns the image string.
 func (named *namedPullSpec) Image() string {
 	return named.data[named.imageKey].(string)
 }
 
+// Data returns the namedPullSpec as a json map
 func (named *namedPullSpec) Data() map[string]interface{} {
 	return named.data
 }
 
+// SetImage will override the image of the pull spec
 func (named *namedPullSpec) SetImage(image string) {
 	named.data[named.imageKey] = image
 }
 
+// AsYamlObject returns the pull spec as an object
 func (named *namedPullSpec) AsYamlObject() map[string]interface{} {
 	return map[string]interface{}{
 		"name":  named.Name(),
@@ -52,14 +63,17 @@ func (named *namedPullSpec) AsYamlObject() map[string]interface{} {
 	}
 }
 
+// Container is a pullspec for containers in kubernetes resources like a pod
 type Container struct {
 	namedPullSpec
 }
 
+// String returns a string representation of the container pullSpec.
 func (container *Container) String() string {
 	return fmt.Sprintf("container %s", container.Name())
 }
 
+// NewContainer returns a container pullspec
 func NewContainer(data interface{}) (*Container, error) {
 	dataMap, ok := data.(map[string]interface{})
 
@@ -75,14 +89,18 @@ func NewContainer(data interface{}) (*Container, error) {
 	}, nil
 }
 
+// InitContainer is a pull spec representing init containers
+// in kubernetes objects.
 type InitContainer struct {
 	namedPullSpec
 }
 
+// String returns a string representation of the pullspec.
 func (container *InitContainer) String() string {
 	return fmt.Sprintf("initcontainer %s", container.Name())
 }
 
+// NewInitContainer returns a new init container pullspec.
 func NewInitContainer(data interface{}) (*InitContainer, error) {
 	dataMap, ok := data.(map[string]interface{})
 
@@ -98,14 +116,17 @@ func NewInitContainer(data interface{}) (*InitContainer, error) {
 	}, nil
 }
 
+// RelatedImage is a pullspec representing the CSV relatedImage field.
 type RelatedImage struct {
 	namedPullSpec
 }
 
+// String returns a string representation of the pullspec.
 func (relatedImage *RelatedImage) String() string {
 	return fmt.Sprintf("relatedImage %s", relatedImage.Name())
 }
 
+// NewRelatedImage returns a new related image pullspec.
 func NewRelatedImage(data interface{}) (*RelatedImage, error) {
 	dataMap, ok := data.(map[string]interface{})
 
@@ -121,19 +142,32 @@ func NewRelatedImage(data interface{}) (*RelatedImage, error) {
 	}, nil
 }
 
+// RelatedImageEnv is a pullspec representing environment variables
+// that start with RELATED_IMAGE_.
 type RelatedImageEnv struct {
 	namedPullSpec
 }
 
-func (relatedImage *RelatedImageEnv) String() string {
-	return fmt.Sprintf("%s var", relatedImage.Name())
+// String returns a string representation of the pullspec.
+func (relatedImageEnv *RelatedImageEnv) String() string {
+	return fmt.Sprintf("%s var", relatedImageEnv.Name())
 }
 
-func (relatedImage *RelatedImageEnv) Name() string {
-	text := fmt.Sprintf("%v", relatedImage.data["name"])
-	return strings.ToLower(text[len("RELATED_IMAGE_"):])
+// Name returns the name of the related image.
+func (relatedImageEnv *RelatedImageEnv) Name() string {
+	text := fmt.Sprintf("%v", relatedImageEnv.data["name"])
+	return strings.TrimSpace(strings.ToLower(text[len("RELATED_IMAGE_"):]))
 }
 
+// AsYamlObject returns the pullspec as a map[string]interface{}.
+func (relatedImageEnv *RelatedImageEnv) AsYamlObject() map[string]interface{} {
+	return map[string]interface{}{
+		"name":  relatedImageEnv.Name(),
+		"image": relatedImageEnv.Image(),
+	}
+}
+
+// NewRelatedImageEnv returns a new related iamge env pullspec.
 func NewRelatedImageEnv(data map[string]interface{}) *RelatedImageEnv {
 	return &RelatedImageEnv{
 		namedPullSpec: namedPullSpec{
@@ -143,11 +177,14 @@ func NewRelatedImageEnv(data map[string]interface{}) *RelatedImageEnv {
 	}
 }
 
+// Annotation is a pullspec representing images in the annotation field of 
+// kubernetes objects.
 type Annotation struct {
 	namedPullSpec
 	startI, endI int
 }
 
+// NewAnnotation returns a new annotation pullspec.
 func NewAnnotation(data map[string]interface{}, key string, startI, endI int) *Annotation {
 	return &Annotation{
 		namedPullSpec: namedPullSpec{
@@ -159,22 +196,26 @@ func NewAnnotation(data map[string]interface{}, key string, startI, endI int) *A
 	}
 }
 
+// Image returns the image string of the pullspec.
 func (annotation *Annotation) Image() string {
 	i, j := annotation.startI, annotation.endI
 	text := fmt.Sprintf("%v", annotation.data[annotation.imageKey])
 	return text[i:j]
 }
 
+// String returns a string representation of the pullspec.
 func (annotation *Annotation) String() string {
 	return fmt.Sprintf("annotation %s", annotation.Name())
 }
 
+// SetImage will replace the image string with the provided image string.
 func (annotation *Annotation) SetImage(image string) {
 	i, j := annotation.startI, annotation.endI
 	text := fmt.Sprintf("%v", annotation.data[annotation.imageKey])
 	annotation.data[annotation.imageKey] = fmt.Sprintf("%v%s%v", text[:i], image, text[j:])
 }
 
+// Name returns the name of the pullspec.
 func (annotation *Annotation) Name() string {
 	image := imagename.Parse(annotation.Image())
 	tag := image.Tag
@@ -185,20 +226,30 @@ func (annotation *Annotation) Name() string {
 	return fmt.Sprintf("%s-%s-annotation", image.Registry, tag)
 }
 
-type OperatorCSV struct {
-	fs                fs.FS
-	path              string
-	data              unstructured.Unstructured
-	pullspecHeuristic PullSpecHeuristic
+// AsYamlObject returns the annotation pullspec as a map[string]interface{}.
+func (annotation *Annotation) AsYamlObject() map[string]interface{} {
+	return map[string]interface{}{
+		"name":  annotation.Name(),
+		"image": annotation.Image(),
+	}
 }
 
-func NewOperatorCSV(path string, data *unstructured.Unstructured, pullSpecHeuristic PullSpecHeuristic) (*OperatorCSV, error) {
+// OperatorCSV represents the CSV data and holds information
+// regarding how to parse the image strings.
+type OperatorCSV struct {
+	path              string
+	data              unstructured.Unstructured
+	pullspecHeuristic Heuristic
+}
+
+// NewOperatorCSV creates a OperatorCSV using the data provided via an unstructured kubernetes object.
+func NewOperatorCSV(path string, data *unstructured.Unstructured, pullSpecHeuristic Heuristic) (*OperatorCSV, error) {
 	if data.GetKind() != operatorCsvKind {
 		return nil, ErrNotClusterServiceVersion
 	}
 
 	if pullSpecHeuristic == nil {
-		pullSpecHeuristic = DefaultPullspecHeuristic
+		pullSpecHeuristic = DefaultHeuristic
 	}
 
 	return &OperatorCSV{
@@ -213,23 +264,59 @@ const (
 )
 
 var (
-	ErrNotClusterServiceVersion = errors.New("Not a ClusterServiceVersion")
 )
 
-func NewOperatorCSVFromPath(path string, pullSpecHeuristic PullSpecHeuristic) (*OperatorCSV, error) {
-	dir, file := filepath.Dir(path), filepath.Base(path)
+// FromDirectory creates a NewOperatorCSV from the directory path provided.
+func FromDirectory(path string, pullSpecHeuristic Heuristic) ([]*OperatorCSV, error) {
+	operatorCSVs := []*OperatorCSV{}
 
-	if dir == "" {
-		dir = "."
+	err := filepath.Walk(path, func(path string, info fs.FileInfo, err error) error {
+		if err != nil {
+			log.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+			return err
+		}
+
+		log.Println(info.Name(), info.IsDir())
+
+		if info.IsDir() ||
+			!(strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml")) {
+			log.Printf("skipping non-yaml file without errors: %+v \n", info.Name())
+			return nil
+		}
+
+		log.Printf("visited file or dir: %q\n", path)
+		csv, err := NewOperatorCSVFromFile(path, pullSpecHeuristic)
+
+		if err != nil && errors.Is(err, ErrNotClusterServiceVersion) {
+			log.Printf("skipping file because it's not a ClusterServiceVersion: %+v \n", info.Name())
+			return nil
+		}
+
+		if err != nil {
+			log.Printf("failure reading the file: %+v \n", info.Name())
+			return err
+		}
+
+		operatorCSVs = append(operatorCSVs, csv)
+		return nil
+	})
+
+	if err != nil {
+		log.Printf("failure walking the directory: %+v \n", err)
+		return nil, err
 	}
 
-	return NewOperatorCSVFromFile(file, os.DirFS(dir), pullSpecHeuristic)
+	return operatorCSVs, nil
 }
 
-func NewOperatorCSVFromFile(path string, inFs fs.FS, pullSpecHeuristic PullSpecHeuristic) (*OperatorCSV, error) {
+// NewOperatorCSVFromFile creates a NewOperatorCSV from a filepath.
+func NewOperatorCSVFromFile(
+	path string,
+	pullSpecHeuristic Heuristic,
+) (*OperatorCSV, error) {
 	data := &unstructured.Unstructured{}
 
-	fileData, err := fs.ReadFile(inFs, path)
+	fileData, err := os.ReadFile(path)
 
 	if err != nil {
 		return nil, err
@@ -249,22 +336,64 @@ func NewOperatorCSVFromFile(path string, inFs fs.FS, pullSpecHeuristic PullSpecH
 		return nil, err
 	}
 
-	csv.fs = inFs
 	return csv, nil
 }
 
-func (csv *OperatorCSV) Dump() error {
+// ToYaml will write the OperatorCSV to yaml string and return the bytes. 
+func (csv *OperatorCSV) ToYaml() ([]byte, error) {
+	buff := bytes.Buffer{}
+
+	enc := yamlv3.NewEncoder(&buff)
+	err := enc.Encode(&csv.data)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return buff.Bytes(), nil
+}
+
+// Dump will dump the csv yaml to a writer if provided or
+// the file the OperatorCSV started from if the filesystem is writable.
+func (csv *OperatorCSV) Dump(writer io.Writer) error {
+	if writer == nil {
+		f, err := os.OpenFile(csv.path, os.O_APPEND|os.O_WRONLY, 0755)
+		defer f.Close()
+		if err != nil {
+			return err
+		}
+
+		writer = f
+	}
+
+	b, err := csv.ToYaml()
+
+	if err != nil {
+		return err
+	}
+
+	_, err = writer.Write(b)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
+// HasRelatedImages returns true with the CSV has RelatedImage pullspecs.
 func (csv *OperatorCSV) HasRelatedImages() bool {
-	return false
+	pullSpecs, _ := csv.relatedImagePullSpecs()
+	return len(pullSpecs) != 0
 }
 
+// HasRelatedImageEnvs returns true with the CSV has RelatedImageEnv pullspecs.
 func (csv *OperatorCSV) HasRelatedImageEnvs() bool {
-	return false
+	pullSpecs, _ := csv.relatedImageEnvPullSpecs()
+	return len(pullSpecs) > 0
 }
 
+// GetPullSpecs will return a list of all the images found in via pullspecs.
 func (csv *OperatorCSV) GetPullSpecs() ([]*imagename.ImageName, error) {
 	pullspecs := make(map[imagename.ImageName]interface{})
 
@@ -291,6 +420,7 @@ func (csv *OperatorCSV) GetPullSpecs() ([]*imagename.ImageName, error) {
 	return imageList, nil
 }
 
+// ReplacePullSpecs will replace each pullspec found with the provide image.
 func (csv *OperatorCSV) ReplacePullSpecs(replacement map[imagename.ImageName]imagename.ImageName) error {
 	pullspecs, err := csv.namedPullSpecs()
 	if err != nil {
@@ -310,6 +440,7 @@ func (csv *OperatorCSV) ReplacePullSpecs(replacement map[imagename.ImageName]ima
 	return nil
 }
 
+// ReplacePullSpecsEverywhere will replace image values in each pullspec throughout the entire OperatorCSV.
 func (csv *OperatorCSV) ReplacePullSpecsEverywhere(replacement map[imagename.ImageName]imagename.ImageName) error {
 	pullspecs := []NamedPullSpec{}
 	annotationPullSpecs, err := csv.annotationPullSpecs(knownAnnotationKeys)
@@ -346,11 +477,64 @@ func (csv *OperatorCSV) ReplacePullSpecsEverywhere(replacement map[imagename.Ima
 	return nil
 }
 
-func (csv *OperatorCSV) SetRelatedImages() {
+// SetRelatedImages will set the related images fields based on the CSV pullspecs discovered.
+func (csv *OperatorCSV) SetRelatedImages() error {
+	namedPullspecs, err := csv.namedPullSpecs()
 
+	if err != nil {
+		return err
+	}
+
+	if len(namedPullspecs) == 0 {
+		return nil
+	}
+
+	conflicts := []string{}
+	byName := map[string]NamedPullSpec{}
+	byDigest := map[string]NamedPullSpec{}
+	for _, newPull := range namedPullspecs {
+		fmt.Println("adding", newPull.Name(), reflect.TypeOf(newPull))
+		old, ok := byName[newPull.Name()]
+
+		if !ok {
+			byName[newPull.Name()] = newPull
+			byDigest[newPull.Image()] = newPull
+			continue
+		}
+
+		if old.Image() == newPull.Image() {
+			continue
+		}
+
+		conflicts = append(conflicts, fmt.Sprintf("%s: %s X %s: %s",
+			old.String(), old.Image(), newPull.String(), newPull.Image()))
+	}
+
+	if len(conflicts) > 0 {
+		return fmt.Errorf("%s - Found conflicts when setting relatedImages:\n%s", csv.path, strings.Join(conflicts, "\n"))
+	}
+
+	relatedImages := []map[string]interface{}{}
+
+	for _, p := range byDigest {
+		log.Printf("%s - Set relateImage %s (from %s): %s\n", csv.path, p.Name(), p.String(), p.Image())
+		relatedImages = append(relatedImages, p.AsYamlObject())
+	}
+
+	spec, ok := csv.data.Object["spec"]
+	if !ok {
+		spec = map[string]interface{}{
+			"relatedImages": relatedImages,
+		}
+		csv.data.Object["spec"] = spec
+	} else {
+		spec.(map[string]interface{})["relatedImages"] = relatedImages
+	}
+
+	return nil
 }
 
-var knownAnnotationKeys = StringSlice{"containerImage"}
+var knownAnnotationKeys = stringSlice{"containerImage"}
 
 func (csv *OperatorCSV) namedPullSpecs() ([]NamedPullSpec, error) {
 	pullspecs := []NamedPullSpec{}
@@ -401,7 +585,7 @@ func (csv *OperatorCSV) namedPullSpecs() ([]NamedPullSpec, error) {
 	return pullspecs, nil
 }
 
-var relatedImagesLens = NewLens().M("spec").M("relatedImages").Build()
+var relatedImagesLens = newLens().M("spec").M("relatedImages").Build()
 
 func (csv *OperatorCSV) relatedImagePullSpecs() ([]NamedPullSpec, error) {
 	lookupResultSlice, err := relatedImagesLens.L(csv.data.Object)
@@ -435,13 +619,13 @@ func (csv *OperatorCSV) relatedImageEnvPullspecs() ([][]int, error) {
 	return nil, nil
 }
 
-var deploymentLens = NewLens().M("spec").M("install").M("spec").M("deployments").Build()
+var deploymentLens = newLens().M("spec").M("install").M("spec").M("deployments").Build()
 
 func (csv *OperatorCSV) deployments() ([]interface{}, error) {
 	return deploymentLens.L(csv.data.Object)
 }
 
-var initContainerLens = NewLens().M("spec").M("template").M("spec").M("initContainers").Build()
+var initContainerLens = newLens().M("spec").M("template").M("spec").M("initContainers").Build()
 
 func (csv *OperatorCSV) initContainerPullSpecs() ([]NamedPullSpec, error) {
 	deployments, err := csv.deployments()
@@ -477,7 +661,7 @@ func (csv *OperatorCSV) initContainerPullSpecs() ([]NamedPullSpec, error) {
 	return pullspecs, nil
 }
 
-var containerLens = NewLens().M("spec").M("template").M("spec").M("containers").Build()
+var containerLens = newLens().M("spec").M("template").M("spec").M("containers").Build()
 
 func (csv *OperatorCSV) containerPullSpecs() ([]NamedPullSpec, error) {
 	deployments, err := csv.deployments()
@@ -553,8 +737,13 @@ func (csv *OperatorCSV) relatedImageEnvPullSpecs() ([]NamedPullSpec, error) {
 				return nil, errors.New("expected type map")
 			}
 
+			// only look at RELATED_IMAGE env vars
+			if name, ok := envMap["name"]; !(ok && strings.HasPrefix(name.(string), "RELATED_IMAGE_")) {
+				continue
+			}
+
 			if _, hasValueFrom := envMap["valueFrom"]; hasValueFrom {
-				return nil, NewError(nil, `%s: "valueFrom" references are not supported`, envMap["name"])
+				return nil, newError(nil, `%s: "valueFrom" references are not supported`, envMap["name"])
 			}
 
 			ps := NewRelatedImageEnv(envMap)
@@ -565,7 +754,7 @@ func (csv *OperatorCSV) relatedImageEnvPullSpecs() ([]NamedPullSpec, error) {
 	return relatedImageEnvs, nil
 }
 
-func (csv *OperatorCSV) annotationPullSpecs(keyFilter StringSlice) ([]NamedPullSpec, error) {
+func (csv *OperatorCSV) annotationPullSpecs(keyFilter stringSlice) ([]NamedPullSpec, error) {
 	pullSpecs := []NamedPullSpec{}
 
 	annotationObjects, err := csv.findAllAnnotations()
@@ -594,13 +783,13 @@ func (csv *OperatorCSV) annotationPullSpecs(keyFilter StringSlice) ([]NamedPullS
 		}
 	}
 
-	return NamedPullSpecSlice(pullSpecs).Reverse(), nil
+	return namedPullSpecSlice(pullSpecs).Reverse(), nil
 }
 
 var (
-	csvAnnotations         = NewLens().M("metadata").M("annotations").Build()
-	deploymentAnnotations  = NewLens().M("spec").M("template").M("metadata").M("annotations").Build()
-	deploymentsAnnotations = NewLens().
+	csvAnnotations         = newLens().M("metadata").M("annotations").Build()
+	deploymentAnnotations  = newLens().M("spec").M("template").M("metadata").M("annotations").Build()
+	deploymentsAnnotations = newLens().
 				M("spec").M("install").M("spec").M("deployments").
 				Apply(deploymentAnnotations).
 				Build()
@@ -654,7 +843,7 @@ func (csv *OperatorCSV) findAllAnnotations() ([]map[string]interface{}, error) {
 	return annotations, nil
 }
 
-var annotations = NewLens().M("metadata").M("annotations").Build()
+var annotations = newLens().M("metadata").M("annotations").Build()
 
 func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]interface{}, results *[]interface{}, underMetadata bool) error {
 	annos, err := annotations.M(root)
@@ -747,34 +936,9 @@ func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]i
 	return nil
 }
 
-var (
-	ErrNotFound                  = errors.New("path not found")
-	ErrPathExpectedDifferentType = errors.New("path expected different type")
-)
+type stringSlice []string
 
-type errBase struct {
-	cause error
-	err   error
-}
-
-func NewError(cause error, format string, args ...interface{}) error {
-	return errBase{
-		err:   errors.New(fmt.Sprintf(format, args...)),
-		cause: cause,
-	}
-}
-
-func (e errBase) Error() string {
-	return e.err.Error()
-}
-
-func (e errBase) Unwrap() error {
-	return e.cause
-}
-
-type StringSlice []string
-
-func (l StringSlice) Contains(in string) bool {
+func (l stringSlice) Contains(in string) bool {
 	for _, key := range l {
 		if key == in {
 			return true
@@ -783,9 +947,9 @@ func (l StringSlice) Contains(in string) bool {
 	return false
 }
 
-type NamedPullSpecSlice []NamedPullSpec
+type namedPullSpecSlice []NamedPullSpec
 
-func (n NamedPullSpecSlice) Reverse() NamedPullSpecSlice {
+func (n namedPullSpecSlice) Reverse() namedPullSpecSlice {
 	for i := 0; i < len(n)/2; i++ {
 		j := len(n) - i - 1
 		n[i], n[j] = n[j], n[i]

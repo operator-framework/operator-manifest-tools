@@ -90,11 +90,11 @@ func mustCompileRule(templates *template.Template, name string, templ string) *t
 		))
 }
 
-// PullSpecHeuristic takes a text and returns a matching slice of
+// Heuristic takes a text and returns a matching slice of
 // []{start, end} slices of substring indices
-type PullSpecHeuristic func(text string) [][]int
+type Heuristic func(text string) [][]int
 
-// DefaultPullspecHeuristic attempts to find all pullspecs in arbitrary structured/unstructured text.
+// DefaultHeuristic attempts to find all pullspecs in arbitrary structured/unstructured text.
 // Returns a list of (start, end) tuples such that:
 //     text[start:end] == <n-th pullspec in text> for all (start, end)
 // The basic idea:
@@ -114,7 +114,7 @@ type PullSpecHeuristic func(text string) [][]int
 // is already too many).
 // :param text: Arbitrary blob of text in which to find pullspecs
 // :return: Slice of []int{start, end} tuples of substring indices
-func DefaultPullspecHeuristic(text string) [][]int {
+func DefaultHeuristic(text string) [][]int {
 	pullspecs := [][]int{}
 
 	candidates := pullspecCandidates(text)

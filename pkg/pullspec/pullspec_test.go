@@ -254,6 +254,10 @@ spec:
                   value: {.ce1}
                 - name: UNRELATED_IMAGE
                   value: {.ce1}
+                - name: UNRELATED_ENV_VAR
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
               - name: c2
                 image: {.c2}
       - spec:
@@ -327,6 +331,10 @@ spec:
                   value: {.ce1.Replace}
                 - name: UNRELATED_IMAGE
                   value: {.ce1}
+                - name: UNRELATED_ENV_VAR
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
               - name: c2
                 image: {.c2.Replace}
       - spec:
@@ -400,6 +408,10 @@ spec:
                   value: {.ce1.Replace}
                 - name: UNRELATED_IMAGE
                   value: {.ce1.Replace}
+                - name: UNRELATED_ENV_VAR
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
               - name: c2
                 image: {.c2.Replace}
       - spec:

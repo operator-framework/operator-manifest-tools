@@ -6,37 +6,39 @@ import (
 	"strings"
 )
 
-type GetStringOptions []GetStringOption
-type GetStringOption byte
+// FormatOption is a the byte switch that sets the format for the image ToString func
+type FormatOption byte
 
 const (
-	Registry GetStringOption = 1 << iota
+	// Registry output option includes the registry in the string.
+	Registry FormatOption = 1 << iota
+	// Tag includes the tag in the output string.
 	Tag
+	// ExplicitTag forces a tag in the string, will use latest if no tag is avail.
 	ExplicitTag
+	// ExplicitNamespace forces a namespace in the repo, will use "library" if no namespace
 	ExplicitNamespace
 	maxKey
 )
 
 var (
-	DefaultGetStringOptions GetStringOption = Registry.Set(Tag)
+	// DefaultGetStringOptions is the default set of options
+	DefaultGetStringOptions FormatOption = Registry | Tag
 
+	// ErrNoImageRepository returns when there is there is no image repository
 	ErrNoImageRepository = errors.New("No image repository specified")
 )
 
-func (bs GetStringOptions) Combine() GetStringOption {
-	var result GetStringOption
+// Set sets the binary flag
+func (b FormatOption) Set(flag FormatOption) FormatOption    { return b | flag }
+// Clear clears the binary flag
+func (b FormatOption) Clear(flag FormatOption) FormatOption  { return b &^ flag }
+// Toggle toggles the flag
+func (b FormatOption) Toggle(flag FormatOption) FormatOption { return b ^ flag }
+// Has checks if the flag is set.
+func (b FormatOption) Has(flag FormatOption) bool               { return b&flag != 0 }
 
-	for i := range bs {
-		result = result.Set(bs[i])
-	}
-
-	return result
-}
-func (b GetStringOption) Set(flag GetStringOption) GetStringOption    { return b | flag }
-func (b GetStringOption) Clear(flag GetStringOption) GetStringOption  { return b &^ flag }
-func (b GetStringOption) Toggle(flag GetStringOption) GetStringOption { return b ^ flag }
-func (b GetStringOption) Has(flag GetStringOption) bool            { return b&flag != 0 }
-
+// ImageName represents the parts of an image reference.
 type ImageName struct {
 	Registry  string
 	Namespace string
@@ -44,58 +46,53 @@ type ImageName struct {
 	Tag       string
 }
 
+// HasDigest return true if the image uses a digest.
 func (imageName *ImageName) HasDigest() bool {
 	return strings.HasPrefix(imageName.Tag, "sha256:")
 }
 
-func (imageName *ImageName) GetRepo(options ...GetStringOption) string {
+// GetRepo returns the repository of the image.
+func (imageName *ImageName) GetRepo(option FormatOption) string {
 	result := imageName.Repo
-
-	optionSet := GetStringOptions(options).Combine()
 
 	if imageName.Namespace != "" {
 		result = fmt.Sprintf("%s/%s", imageName.Namespace, result)
 	}
 
-	if optionSet.Has(ExplicitNamespace) {
+	if option.Has(ExplicitNamespace) {
 		result = fmt.Sprintf("%s/%s", "library", result)
 	}
 
 	return result
 }
 
-func (imageName *ImageName) ToString(options ...GetStringOption) (string, error) {
+// ToString will print the image using formatting options.
+func (imageName *ImageName) ToString(optionSet FormatOption) (string, error) {
 
 	if imageName.Repo == "" {
 		return "", ErrNoImageRepository
 	}
 
-	optionSet := GetStringOptions(options).Combine()
+	result := imageName.GetRepo(optionSet)
 
-	var str strings.Builder
+	if optionSet.Has(Tag) && imageName.Tag != "" {
+		if imageName.HasDigest() {
+			result = fmt.Sprintf("%s@%s", result, imageName.Tag)
+		} else {
+			result = fmt.Sprintf("%s:%s", result, imageName.Tag)
+		}
+	} else if optionSet.Has(Tag) && optionSet.Has(ExplicitTag) {
+		result = fmt.Sprintf("%s:%s", result, "latest")
+	}
 
 	if optionSet.Has(Registry) && imageName.Registry != "" {
-		str.WriteString(imageName.Registry)
-		str.WriteString("/")
+		result = fmt.Sprintf("%s/%s", imageName.Registry, result)
 	}
 
-	str.WriteString(imageName.GetRepo(optionSet))
-
-	if imageName.Tag != "" {
-		if imageName.HasDigest() {
-			str.WriteString("@")
-		} else {
-			str.WriteString(":")
-		}
-
-		str.WriteString(imageName.Tag)
-	} else if optionSet.Has(ExplicitTag) {
-		str.WriteString(":latest")
-	}
-
-	return str.String(), nil
+	return result, nil
 }
 
+// Enclose will set the organization on the image.
 func (imageName *ImageName) Enclose(organization string) {
 	if imageName.Namespace == organization {
 		return
@@ -111,8 +108,10 @@ func (imageName *ImageName) Enclose(organization string) {
 	imageName.Repo = strings.Join(repoParts, "-")
 }
 
+// String returns the string representation of the image using
+// the registry and tag formatting.
 func (imageName *ImageName) String() string {
-	result, err := imageName.ToString(Registry, Tag)
+	result, err := imageName.ToString(Registry | Tag)
 
 	if err != nil {
 		panic(err)
@@ -121,6 +120,7 @@ func (imageName *ImageName) String() string {
 	return result
 }
 
+// Parse parses the image from a string.
 func Parse(imageName string) *ImageName {
 	result := &ImageName{}
 
