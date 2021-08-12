@@ -3,26 +3,34 @@ package cmd
 import (
 	"errors"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
 const (
+	// defaultOutputExtract filename
 	defaultOutputExtract = "references.json"
+	// defaultOutputReplace filename
 	defaultOutputReplace = "replacements.json"
 )
 
+// pinCmdArgs is the arguments for the command
 type pinCmdArgs struct {
-	outputExtract fileOrCmdParam
-	outputReplace fileOrCmdParam
+	outputExtract OutputParam
+	outputReplace OutputParam
 	authFile      string
 	skopeoPath    string
 	dryRun        bool
 }
 
 var (
-	pinCmdData = pinCmdArgs{}
+	// pinCmdData is the command 
+	pinCmdData = pinCmdArgs{
+		outputExtract: NewOutputParam(),
+		outputReplace: NewOutputParam(),
+	}
 
 	// pinCmd represents the pin command
 	pinCmd = &cobra.Command{
@@ -39,17 +47,7 @@ the resolved, pinned, version.`, "\n", ""),
 				return err
 			}
 
-			return pinCmdData.outputReplace.Init(cmd, args)
-		},
-		PostRunE: func(cmd *cobra.Command, args []string) error {
-			err1 := pinCmdData.outputExtract.Close()
-			err2 := pinCmdData.outputReplace.Close()
-
-			if err1 != nil {
-				return err1
-			}
-
-			return err2
+			return nil
 		},
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -62,18 +60,36 @@ the resolved, pinned, version.`, "\n", ""),
 			if err != nil {
 				return errors.New("error extracting: " + err.Error())
 			}
-			
-			pinCmdData.outputExtract.Sync()
 
-			err = resolve(pinCmdData.authFile, pinCmdData.authFile, &pinCmdData.outputExtract, &pinCmdData.outputReplace)
+			pinCmdData.outputExtract.Close()
+			inputExtract, err := os.OpenFile(pinCmdData.outputExtract.Name, os.O_RDONLY, 0755)
+			if err != nil {
+				return errors.New("failure reading extracted data: " + err.Error())
+			}
+			defer inputExtract.Close()
+
+			if err := pinCmdData.outputReplace.Init(cmd, args); err != nil {
+				return errors.New("failure to setup replace output: " + err.Error())
+			}
+
+			err = resolve(pinCmdData.authFile,
+				pinCmdData.authFile, 
+				inputExtract, 
+				&pinCmdData.outputReplace)
 
 			if err != nil {
 				return errors.New("error resolving: " + err.Error())
 			}
 
-			pinCmdData.outputReplace.Sync()
+			pinCmdData.outputReplace.Close()
 
-			err = replace(args[0], &pinCmdData.outputReplace)
+			inputReplace, err := os.OpenFile(pinCmdData.outputReplace.Name, os.O_RDONLY, 0755)
+			if err != nil {
+				return errors.New("failure reading replace data: " + err.Error())
+			}
+			defer inputReplace.Close()
+
+			err = replace(args[0], inputReplace)
 
 			if err != nil {
 				return errors.New("error replacing: " + err.Error())
@@ -87,14 +103,14 @@ the resolved, pinned, version.`, "\n", ""),
 func init() {
 	rootCmd.AddCommand(pinCmd)
 
-	pinCmdData.outputExtract.AddOutputFlag(
+	pinCmdData.outputExtract.AddFlag(
 		pinCmd,
 		"output-extract",
 		defaultOutputExtract,
 		"The path to store the extracted image references from the CSVs. By default "+defaultOutputExtract+" is used.",
 	)
 
-	pinCmdData.outputReplace.AddOutputFlag(
+	pinCmdData.outputReplace.AddFlag(
 		pinCmd,
 		"output-replace",
 		defaultOutputReplace,

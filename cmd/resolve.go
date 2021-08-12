@@ -11,14 +11,17 @@ import (
 )
 
 type resolveCmdArgs struct {
-	input      fileOrCmdParam
-	outputFile fileOrCmdParam
+	input      InputParam
+	outputFile OutputParam
 	authFile   string
 	skopeoPath string
 }
 
 var (
-	resolveCmdData = &resolveCmdArgs{}
+	resolveCmdData = &resolveCmdArgs{
+		input: NewInputParam(),
+		outputFile: NewOutputParam(),
+	}
 )
 
 // resolveCmd represents the resolve command
@@ -54,7 +57,7 @@ var resolveCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(resolveCmd)
 
-	resolveCmdData.outputFile.AddOutputFlag(resolveCmd, "output", "-", `The path to store the extracted image references. Use - to specify stdout. By default - is used.`)
+	resolveCmdData.outputFile.AddFlag(resolveCmd, "output", "-", `The path to store the extracted image references. Use - to specify stdout. By default - is used.`)
 
 	resolveCmd.Flags().StringVarP(&resolveCmdData.authFile,
 		"authfile", "a", "", "The path to the authentication file for registry communication.")
@@ -63,6 +66,8 @@ func init() {
 		"skopeo", "s", "skopeo", "The path to skopeo cli utility.")
 }
 
+// resolve will read images from the extracted json and write the resolved
+// image to the output using skopeo to look up the image shas.
 func resolve(
 	authfile, skopeoPath string,
 	input io.Reader,
@@ -81,7 +86,7 @@ func resolve(
 		return errors.New("error unmarshalling references: " + err.Error())
 	}
 
-	resolver, err := imageresolver.NewSkopeoImageResolver(skopeoPath, authfile)
+	resolver, err := imageresolver.NewSkopeoResolver(skopeoPath, authfile)
 
 	if err != nil {
 		return errors.New("error creating a resolver: " + err.Error())

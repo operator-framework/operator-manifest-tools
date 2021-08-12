@@ -13,7 +13,7 @@ import (
 )
 
 var _ = Describe("skopeo image resolver", func() {
-	var sut *SkopeoImageResolver
+	var sut *Skopeo
 	var mockRunner *mockCommandRunner
 	var mockProvider *mockCommandRunnerProvider
 
@@ -24,7 +24,7 @@ var _ = Describe("skopeo image resolver", func() {
 
 		mockProvider.On("Command", "skopeo", mock.Anything).Return(mockRunner)
 
-		sut = &SkopeoImageResolver{
+		sut = &Skopeo{
 			path:     "skopeo",
 			authFile: "nonexistantfile",
 			command:  mockProvider.Command,
@@ -91,7 +91,7 @@ var _ = Describe("skopeo image resolver", func() {
 		tmpDir := os.TempDir()
 		fileName := filepath.Join(tmpDir, "fakeFile")
 
-		_, err := NewSkopeoImageResolver("path", fileName)
+		_, err := NewSkopeoResolver("path", fileName)
 		Expect(err).To(HaveOccurred())
 	})
 

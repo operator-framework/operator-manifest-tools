@@ -11,12 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// extractCmdArgs is the args file type for the extractCmd
 type extractCmdArgs struct {
-	outputFile fileOrCmdParam
+	outputFile OutputParam
 }
 
 var (
-	extractCmdData = extractCmdArgs{}
+	// extractCmdData stores the data for extractCmd
+	extractCmdData = extractCmdArgs{
+		outputFile: NewOutputParam(),
+	}
 
 	// extractCmd represents the extract command
 	extractCmd = &cobra.Command{
@@ -35,11 +39,13 @@ var (
 	}
 )
 
+// init initializes the command arguments.
 func init() {
 	rootCmd.AddCommand(extractCmd)
-	extractCmdData.outputFile.AddOutputFlag(extractCmd, "output", "-", `The path to store the extracted image references. Use - to specify stdout. By default - is used.`)
+	extractCmdData.outputFile.AddFlag(extractCmd, "output", "-", `The path to store the extracted image references. Use - to specify stdout. By default - is used.`)
 }
 
+// extract will extract images from the CSV located on the path
 func extract(manifestPath string, output io.Writer) error {
 	out := []interface{}{}
 
@@ -49,7 +55,7 @@ func extract(manifestPath string, output io.Writer) error {
 	}
 
 	log.Printf("extracting image references from %s\n", manifestAbsPath)
-	operatorManifests, err := pullspec.FromDirectory(manifestAbsPath, pullspec.DefaultPullspecHeuristic)
+	operatorManifests, err := pullspec.FromDirectory(manifestAbsPath, pullspec.DefaultHeuristic)
 
 	for _, manifest := range operatorManifests {
 		pullSpecs, err := manifest.GetPullSpecs()

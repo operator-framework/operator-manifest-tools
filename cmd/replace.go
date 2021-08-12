@@ -14,12 +14,14 @@ import (
 )
 
 type replaceCmdArgs struct {
-	replacementFile fileOrCmdParam
+	replacementFile InputParam
 	dryRun          bool
 }
 
 var (
-	replaceCmdData = replaceCmdArgs{}
+	replaceCmdData = replaceCmdArgs{
+		replacementFile: NewInputParam(),
+	}
 )
 
 // replaceCmd represents the replace command
@@ -47,7 +49,7 @@ var replaceCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(replaceCmd)
 
-	replaceCmdData.replacementFile.AddOutputFlag(replaceCmd,
+	replaceCmdData.replacementFile.AddFlag(replaceCmd,
 		"replacements_file", "-", strings.ReplaceAll(`The path to the REPLACEMENTS_FILE. 
 The format of this file is a simple JSON object
 where each attribute is a string representing the original image reference and the
@@ -60,6 +62,8 @@ in a state that accepts replacements. By default this option is not set.`, "\n",
 
 }
 
+// replace will read manifests from the directory and replace the images from
+// the replacements directory.
 func replace(manifestDir string, replacementsReader io.Reader) error {
 	manifestAbsPath, err := filepath.Abs(manifestDir)
 	replacementsData, err := io.ReadAll(replacementsReader)
@@ -87,7 +91,7 @@ func replace(manifestDir string, replacementsReader io.Reader) error {
 		replacementImages[*key] = *value
 	}
 
-	operatorManifests, err := pullspec.FromDirectory(manifestAbsPath, pullspec.DefaultPullspecHeuristic)
+	operatorManifests, err := pullspec.FromDirectory(manifestAbsPath, pullspec.DefaultHeuristic)
 
 	for _, manifest := range operatorManifests {
 		err := manifest.ReplacePullSpecsEverywhere(replacementImages)

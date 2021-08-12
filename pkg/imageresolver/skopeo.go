@@ -11,7 +11,10 @@ import (
 	"strings"
 )
 
+// ImageResolve implements a method of identifying an image reference.
 type ImageResolver interface {
+	// ResolveImageReference will use the image resolver to map an image reference
+	// to the image's SHA256 value from the registry.
 	ResolveImageReference(imageReference string) (string, error)
 }
 
@@ -21,14 +24,17 @@ type commandRunner interface {
 
 type commandCreator func(name string, arg ...string) commandRunner
 
-type SkopeoImageResolver struct {
+// Skopeo is the default image resolver using skopeo.
+type Skopeo struct {
 	path     string
 	authFile string
 
 	command commandCreator
 }
 
-func NewSkopeoImageResolver(skopeoPath, authFile string) (*SkopeoImageResolver, error) {
+// NewSkopeoResolver returns the skopeo resolver setting the exec filepath
+// and the authfile used by skopeo.
+func NewSkopeoResolver(skopeoPath, authFile string) (*Skopeo, error) {
 	if authFile != "" {
 		_, err := os.Stat(authFile)
 
@@ -37,7 +43,7 @@ func NewSkopeoImageResolver(skopeoPath, authFile string) (*SkopeoImageResolver, 
 		}
 	}
 
-	return &SkopeoImageResolver{
+	return &Skopeo{
 		path:     skopeoPath,
 		authFile: authFile,
 		command: func(name string, args ...string) commandRunner {
@@ -58,7 +64,7 @@ const (
 	timeout = "300s"
 )
 
-func (skopeo *SkopeoImageResolver) getSkopeoResults(args ...string) ([]byte, map[string]interface{}, error) {
+func (skopeo *Skopeo) getSkopeoResults(args ...string) ([]byte, map[string]interface{}, error) {
 	baseArgs := []string{"--command-timeout", timeout, "inspect"}
 	name := "skopeo"
 	if skopeo.path != "" {
@@ -81,7 +87,9 @@ func (skopeo *SkopeoImageResolver) getSkopeoResults(args ...string) ([]byte, map
 	return skopeoRaw, skopeoJson, nil
 }
 
-func (skopeo *SkopeoImageResolver) ResolveImageReference(imageReference string) (string, error) {
+// ResolveImageReference will use the image resolver to map an image reference
+// to the image's SHA256 value from the registry.
+func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, error) {
 	imageName := getName(imageReference)
 	imageReference = fmt.Sprintf("docker://%s", imageReference)
 	args := []string{imageReference}
