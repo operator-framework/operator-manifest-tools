@@ -3,7 +3,7 @@ Tooling that enables software release pipelines for operator manifests.
 
 ## Commands
 
-Docs for the commands can be found [Operator Manifest Tools](docs/operator-manifest-tools).
+Command documentation: [Operator Manifest Tools](docs/operator-manifest-tools.md).
 
 ``` sh
 Usage:

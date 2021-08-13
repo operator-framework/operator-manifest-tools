@@ -1,5 +1,8 @@
 PROJECT_DIR=$(shell pwd)
 
+release: goreleaser
+	goreleaser release --rm-dist
+
 docs:
 	cd hack/build/docs && go run main.go
 
@@ -9,6 +12,9 @@ test: ginkgo
 GINKGO=$(PROJECT_DIR)/bin/ginkgo
 ginkgo:
 	$(call go-get-tool,$(GINKGO),github.com/onsi/ginkgo/ginkgo)
+
+goreleaser:
+	@[ -f $(which goreleaser) ] || go install github.com/goreleaser/goreleaser@latest
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 define go-get-tool
