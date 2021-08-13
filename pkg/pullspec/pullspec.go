@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 
 	"io/fs"
@@ -344,7 +343,7 @@ func (csv *OperatorCSV) ToYaml() ([]byte, error) {
 	buff := bytes.Buffer{}
 
 	enc := yamlv3.NewEncoder(&buff)
-	err := enc.Encode(&csv.data)
+	err := enc.Encode(&csv.data.Object)
 
 	if err != nil {
 		return nil, err
@@ -493,7 +492,6 @@ func (csv *OperatorCSV) SetRelatedImages() error {
 	byName := map[string]NamedPullSpec{}
 	byDigest := map[string]NamedPullSpec{}
 	for _, newPull := range namedPullspecs {
-		fmt.Println("adding", newPull.Name(), reflect.TypeOf(newPull))
 		old, ok := byName[newPull.Name()]
 
 		if !ok {

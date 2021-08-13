@@ -1,4 +1,4 @@
-package cmd
+package pinning
 
 import (
 	"encoding/json"
@@ -10,24 +10,26 @@ import (
 
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
 	"github.com/operator-framework/operator-manifest-tools/pkg/pullspec"
+	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
 type replaceCmdArgs struct {
-	replacementFile InputParam
+	replacementFile utils.InputParam
 	dryRun          bool
 }
 
 var (
 	replaceCmdData = replaceCmdArgs{
-		replacementFile: NewInputParam(),
+		replacementFile: utils.NewInputParam(),
 	}
 )
 
 // replaceCmd represents the replace command
 var replaceCmd = &cobra.Command{
 	Use:   "replace [flags] MANIFEST_DIR",
-	Short: "Modify the image references in the CSVs found in the MANIFEST_DIR based on the given REPLACEMENTS_FILE.",
+	Short: `Modify the image references in the CSVs found in
+the MANIFEST_DIR based on the given REPLACEMENTS_FILE.`,
 	Args:  cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return replaceCmdData.replacementFile.Init(cmd, args)
@@ -47,14 +49,13 @@ var replaceCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(replaceCmd)
 
 	replaceCmdData.replacementFile.AddFlag(replaceCmd,
-		"replacements_file", "-", strings.ReplaceAll(`The path to the REPLACEMENTS_FILE. 
+		"replacements_file", "-", `The path to the REPLACEMENTS_FILE.
 The format of this file is a simple JSON object
 where each attribute is a string representing the original image reference and the
 value is a string representing the new value for the image reference. Use - to
-specify stdin.`, "\n", " "))
+specify stdin.`)
 
 	replaceCmd.Flags().BoolVar(&replaceCmdData.dryRun,
 		"dry-run", false, strings.ReplaceAll(`When set, replacements are not performed. This is useful to determine if the CSV is

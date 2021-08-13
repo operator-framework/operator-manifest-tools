@@ -1,11 +1,14 @@
-package cmd
+package pinning
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
+	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -18,28 +21,30 @@ const (
 
 // pinCmdArgs is the arguments for the command
 type pinCmdArgs struct {
-	outputExtract OutputParam
-	outputReplace OutputParam
-	authFile      string
-	skopeoPath    string
-	dryRun        bool
+	resolver     string
+	resolverArgs map[string]string
+	authFile     string
+	dryRun       bool
+
+	outputExtract utils.OutputParam
+	outputReplace utils.OutputParam
 }
 
 var (
-	// pinCmdData is the command 
+	// pinCmdData is the command
 	pinCmdData = pinCmdArgs{
-		outputExtract: NewOutputParam(),
-		outputReplace: NewOutputParam(),
+		outputExtract: utils.NewOutputParam(),
+		outputReplace: utils.NewOutputParam(),
 	}
 
 	// pinCmd represents the pin command
 	pinCmd = &cobra.Command{
 		Use:   "pin [flags] MANIFEST_DIR",
 		Short: "Pins to digest all the image references from the CSVs found in MANIFEST_DIR.",
-		Long: strings.ReplaceAll(`Pins to digest all the image references from the CSVs found in MANIFEST_DIR. For
+		Long: `Pins to digest all the image references from the CSVs found in MANIFEST_DIR. For
 each image reference, if a tag is used, it is resolved to a digest by querying the
 container image registry. Then, replaces all the image references in the CSVs with
-the resolved, pinned, version.`, "\n", ""),
+the resolved, pinned, version.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			err := pinCmdData.outputExtract.Init(cmd, args)
 
@@ -72,9 +77,25 @@ the resolved, pinned, version.`, "\n", ""),
 				return errors.New("failure to setup replace output: " + err.Error())
 			}
 
-			err = resolve(pinCmdData.authFile,
-				pinCmdData.skopeoPath, 
-				inputExtract, 
+			resolverArgs := resolveCmdData.resolverArgs
+
+			if resolverArgs == nil {
+				resolverArgs = make(map[string]string)
+			}
+
+			if file := resolveCmdData.authFile; file != "" {
+				resolverArgs["authFile"] = file
+			}
+
+			resolver, err := imageresolver.GetResolver(
+				imageresolver.ResolverOption(resolveCmdData.resolver), resolverArgs)
+
+			if err != nil {
+				return fmt.Errorf("failed to get a resolver: %s", err)
+			}
+
+			err = resolve(resolver,
+				inputExtract,
 				&pinCmdData.outputReplace)
 
 			if err != nil {
@@ -101,13 +122,12 @@ the resolved, pinned, version.`, "\n", ""),
 )
 
 func init() {
-	rootCmd.AddCommand(pinCmd)
-
 	pinCmdData.outputExtract.AddFlag(
 		pinCmd,
 		"output-extract",
 		defaultOutputExtract,
-		"The path to store the extracted image references from the CSVs. By default "+defaultOutputExtract+" is used.",
+		`The path to store the extracted image references from the CSVs.
+By default `+defaultOutputExtract+" is used.",
 	)
 
 	pinCmdData.outputReplace.AddFlag(
@@ -125,6 +145,5 @@ By default this option is not set.`, "\n", " "))
 	pinCmd.Flags().StringVarP(&pinCmdData.authFile,
 		"authfile", "a", "", "The path to the authentication file for registry communication.")
 
-	pinCmd.Flags().StringVarP(&pinCmdData.skopeoPath,
-		"skopeo", "s", "skopeo", "The path to skopeo cli utility.")
+	mountResolverOpts(pinCmd, &pinCmdData.resolver, &pinCmdData.resolverArgs)
 }

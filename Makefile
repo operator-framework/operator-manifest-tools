@@ -1,5 +1,8 @@
 PROJECT_DIR=$(shell pwd)
 
+docs:
+	cd hack/build/docs && go run main.go
+
 test: ginkgo
 	$(GINKGO) -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress ./...
 

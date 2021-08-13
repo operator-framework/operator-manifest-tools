@@ -11,19 +11,6 @@ import (
 	"strings"
 )
 
-// ImageResolve implements a method of identifying an image reference.
-type ImageResolver interface {
-	// ResolveImageReference will use the image resolver to map an image reference
-	// to the image's SHA256 value from the registry.
-	ResolveImageReference(imageReference string) (string, error)
-}
-
-type commandRunner interface {
-	CombinedOutput() ([]byte, error)
-}
-
-type commandCreator func(name string, arg ...string) commandRunner
-
 // Skopeo is the default image resolver using skopeo.
 type Skopeo struct {
 	path     string
@@ -93,7 +80,6 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 	imageName := getName(imageReference)
 	imageReference = fmt.Sprintf("docker://%s", imageReference)
 	args := []string{imageReference}
-
 
 	if skopeo.authFile != "" {
 		args = append(args, "--authFile", skopeo.authFile)

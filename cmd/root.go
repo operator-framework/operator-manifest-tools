@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/operator-framework/operator-manifest-tools/cmd/pinning"
 	"github.com/spf13/cobra"
 )
 
@@ -38,4 +39,10 @@ func Execute() {
 
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Print debug output of the command")
+	rootCmd.AddCommand(pinning.PinningCmd)
+}
+
+
+func Root() *cobra.Command {
+	return rootCmd
 }
