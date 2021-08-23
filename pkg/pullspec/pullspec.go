@@ -356,7 +356,7 @@ func (csv *OperatorCSV) ToYaml() ([]byte, error) {
 // the file the OperatorCSV started from if the filesystem is writable.
 func (csv *OperatorCSV) Dump(writer io.Writer) error {
 	if writer == nil {
-		f, err := os.OpenFile(csv.path, os.O_APPEND|os.O_WRONLY, 0755)
+		f, err := os.OpenFile(csv.path, os.O_TRUNC|os.O_WRONLY, 0755)
 		defer f.Close()
 		if err != nil {
 			return err

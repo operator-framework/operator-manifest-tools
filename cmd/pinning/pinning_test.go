@@ -12,17 +12,21 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
+	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
+	"gopkg.in/yaml.v3"
 )
 
 var _ = Describe("pinning", func() {
 	var (
 		csvOriginal *template.Template
 		//relatedImage,
-		resolved    *template.Template
-		manifestDir, csvFilePath                   string
+		resolved                               *template.Template
+		manifestDir, csvFilePath               string
 		eggsImageReference, spamImageReference string
 
 		resolver imageresolver.ImageResolver
+
+		dir string
 	)
 
 	BeforeEach(func() {
@@ -31,7 +35,7 @@ var _ = Describe("pinning", func() {
 		// 	Delims("{", "}").Parse(CSV_TEMPLATE_WITH_RELATED_IMAGES))
 		resolved = template.Must(template.New("resolved").Parse(CSV_RESOLVED_TEMPLATE))
 
-		dir, _ := ioutil.TempDir("", "script")
+		dir, _ = ioutil.TempDir("", "script")
 		manifestDir, _ = ioutil.TempDir("", "pinning_test_")
 		csvFilePath = filepath.Join(manifestDir, "clusterserviceversion.yaml")
 
@@ -138,7 +142,7 @@ exit 1
 
 	Context("replace", func() {
 		var (
-			resolveData []byte
+			resolveData  []byte
 			resolvedFile []byte
 		)
 
@@ -189,6 +193,102 @@ exit 1
 			Expect(fileData).To(MatchUnorderedYAML(resolvedFile))
 		})
 	})
+
+	Context("pin", func() {
+		var (
+			outputExtract, outputReplace utils.OutputParam
+
+			resolvedFile             []byte
+			extractFile, replaceFile *os.File
+		)
+
+		BeforeEach(func() {
+			eggsImageReference = "registry.example.com/eggs:9.8"
+			spamImageReference = "registry.example.com/maps/spam-operator:1.2"
+
+			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_WRONLY, 0755)
+			defer csvFile.Close()
+			Expect(err).To(Succeed())
+
+			csvOriginal.Execute(csvFile,
+				struct {
+					Vars map[string]string
+				}{
+					map[string]string{
+						"Eggs": eggsImageReference,
+						"Spam": spamImageReference,
+					},
+				})
+
+			extractFile, err = ioutil.TempFile(dir, "extract")
+			Expect(err).To(Succeed())
+			outputExtract = utils.NewOutputParam()
+			outputExtract.Name = extractFile.Name()
+
+			replaceFile, err = ioutil.TempFile(dir, "replace")
+			Expect(err).To(Succeed())
+			outputReplace = utils.NewOutputParam()
+			outputReplace.Name = replaceFile.Name()
+
+			var resolvedFileBuffer bytes.Buffer
+			resolved.Execute(&resolvedFileBuffer,
+				struct {
+					Vars map[string]string
+				}{
+					map[string]string{
+						"Eggs": "registry.example.com/eggs@sha256:2",
+						"Spam": "registry.example.com/maps/spam-operator@sha256:1",
+					},
+				})
+
+			resolvedFile = resolvedFileBuffer.Bytes()
+		})
+
+		AfterEach(func() {
+			os.Remove(extractFile.Name())
+			os.Remove(replaceFile.Name())
+		})
+
+		It("should replace image refs", func() {
+			err := pin(
+				manifestDir,
+				resolver,
+				outputExtract,
+				outputReplace,
+			)
+			Expect(err).To(Succeed())
+
+			extractAnswer, err := os.ReadFile(outputExtract.Name)
+			Expect(err).To(Succeed())
+
+			extractJson := []interface{}{}
+
+			Expect(json.Unmarshal(extractAnswer, &extractJson)).To(Succeed())
+			Expect(extractJson).To(HaveLen(2))
+			Expect(extractJson).To(ConsistOf(eggsImageReference, spamImageReference))
+			Expect(err).To(Succeed())
+
+			resolveAnswer, err := os.ReadFile(outputReplace.Name)
+			Expect(err).To(Succeed())
+
+			resolveJson := map[string]interface{}{}
+			Expect(json.Unmarshal(resolveAnswer, &resolveJson)).To(Succeed())
+			Expect(resolveJson).To(HaveLen(2))
+			Expect(resolveJson).To(Equal(
+				map[string]interface{}{
+					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
+					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
+				}))
+
+			replaceAnswer, err := os.ReadFile(csvFilePath)
+			Expect(err).To(Succeed())
+			Expect(replaceAnswer).To(MatchUnorderedYAML(resolvedFile))
+
+			validYaml := map[string]interface{}{}
+			Expect(yaml.Unmarshal(replaceAnswer, &validYaml)).To(Succeed())
+		})
+	})
+
 })
 
 const CSV_TEMPLATE = `apiVersion: operators.coreos.com/v1alpha1

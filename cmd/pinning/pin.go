@@ -60,23 +60,7 @@ the resolved, pinned, version.`,
 				log.SetOutput(cmd.ErrOrStderr())
 			}
 
-			err := extract(args[0], &pinCmdData.outputExtract)
-
-			if err != nil {
-				return errors.New("error extracting: " + err.Error())
-			}
-
-			pinCmdData.outputExtract.Close()
-			inputExtract, err := os.OpenFile(pinCmdData.outputExtract.Name, os.O_RDONLY, 0755)
-			if err != nil {
-				return errors.New("failure reading extracted data: " + err.Error())
-			}
-			defer inputExtract.Close()
-
-			if err := pinCmdData.outputReplace.Init(cmd, args); err != nil {
-				return errors.New("failure to setup replace output: " + err.Error())
-			}
-
+			manifestDir := args[0]
 			resolverArgs := resolveCmdData.resolverArgs
 
 			if resolverArgs == nil {
@@ -88,38 +72,73 @@ the resolved, pinned, version.`,
 			}
 
 			resolver, err := imageresolver.GetResolver(
-				imageresolver.ResolverOption(resolveCmdData.resolver), resolverArgs)
+				imageresolver.ResolverOption(pinCmdData.resolver), resolverArgs)
 
 			if err != nil {
 				return fmt.Errorf("failed to get a resolver: %s", err)
 			}
 
-			err = resolve(resolver,
-				inputExtract,
-				&pinCmdData.outputReplace)
-
-			if err != nil {
-				return errors.New("error resolving: " + err.Error())
-			}
-
-			pinCmdData.outputReplace.Close()
-
-			inputReplace, err := os.OpenFile(pinCmdData.outputReplace.Name, os.O_RDONLY, 0755)
-			if err != nil {
-				return errors.New("failure reading replace data: " + err.Error())
-			}
-			defer inputReplace.Close()
-
-			err = replace(args[0], inputReplace)
-
-			if err != nil {
-				return errors.New("error replacing: " + err.Error())
-			}
-
-			return nil
+			return pin(
+				manifestDir,
+				resolver,
+				pinCmdData.outputExtract,
+				pinCmdData.outputReplace,
+			)
 		},
 	}
 )
+
+func pin(
+	manifestDir string,
+	resolver imageresolver.ImageResolver,
+	outputExtract, outputReplace utils.OutputParam,
+) error {
+	err := outputExtract.FromFile()
+	if err != nil {
+		return errors.New("error extracting: " + err.Error())
+	}
+
+	err = extract(manifestDir, &outputExtract)
+
+	if err != nil {
+		return errors.New("error extracting: " + err.Error())
+	}
+
+	outputExtract.Close()
+	inputExtract, err := os.OpenFile(outputExtract.Name, os.O_RDONLY, 0755)
+	if err != nil {
+		return errors.New("failure reading extracted data: " + err.Error())
+	}
+	defer inputExtract.Close()
+
+	if err := outputReplace.FromFile(); err != nil {
+		return errors.New("failure to setup replace output: " + err.Error())
+	}
+
+	err = resolve(resolver,
+		inputExtract,
+		&outputReplace)
+
+	if err != nil {
+		return errors.New("error resolving: " + err.Error())
+	}
+
+	outputReplace.Close()
+
+	inputReplace, err := os.OpenFile(outputReplace.Name, os.O_RDONLY, 0755)
+	if err != nil {
+		return errors.New("failure reading replace data: " + err.Error())
+	}
+	defer inputReplace.Close()
+
+	err = replace(manifestDir, inputReplace)
+
+	if err != nil {
+		return errors.New("error replacing: " + err.Error())
+	}
+
+	return nil
+}
 
 func init() {
 	pinCmdData.outputExtract.AddFlag(

@@ -23,7 +23,7 @@ type fileOrCmdParam struct {
 // InputParam is a parameter used for input. If the name is a "-" it will use the commands
 // stdin.
 type InputParam struct {
-	*fileOrCmdParam 
+	*fileOrCmdParam
 }
 
 // OutputParam is a parameter used for output. If the name is a "-" it will use the commands
@@ -61,27 +61,33 @@ func (o *OutputParam) Write(p []byte) (int, error) {
 	return o.writer.Write(p)
 }
 
+// FromFile initializes the param from a filepath using o.Name
+func (o *fileOrCmdParam) FromFile() error {
+	absOutputPath, err := filepath.Abs(o.Name)
+	if err != nil {
+		return errors.New("failed to get absolute path of file " + o.Name)
+	}
+
+	f, err := os.OpenFile(absOutputPath, o.perm, 0755)
+
+	if err != nil {
+		return errors.New("failed to open output file " + absOutputPath)
+	}
+
+	o.closer = f
+	o.f = f
+	o.writer = f
+	o.reader = f
+	return nil
+}
+
 // Init is a function that sets up the parameter with the intended source.
 func (o *fileOrCmdParam) Init(cmd *cobra.Command, args []string) error {
 	o.writer = cmd.OutOrStdout()
 	o.reader = cmd.InOrStdin()
 
 	if o.Name != "-" {
-		absOutputPath, err := filepath.Abs(o.Name)
-		if err != nil {
-			return errors.New("failed to get absolute path of file " + o.Name)
-		}
-
-		f, err := os.OpenFile(absOutputPath, o.perm, 0755)
-
-		if err != nil {
-			return errors.New("failed to open output file " + absOutputPath)
-		}
-
-		o.closer = f
-		o.f = f
-		o.writer = f
-		o.reader = f
+		return o.FromFile()
 	}
 
 	return nil
