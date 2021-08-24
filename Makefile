@@ -1,6 +1,6 @@
 PROJECT_DIR=$(shell pwd)
 
-.DEFAULT_GOAL: install
+.DEFAULT_GOAL=install
 
 release: goreleaser
 	goreleaser release --rm-dist
