@@ -1,5 +1,7 @@
 PROJECT_DIR=$(shell pwd)
 
+.DEFAULT_GOAL: install
+
 release: goreleaser
 	goreleaser release --rm-dist
 
@@ -8,6 +10,9 @@ docs:
 
 test: ginkgo
 	$(GINKGO) -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress ./...
+
+install:
+	go install
 
 GINKGO=$(PROJECT_DIR)/bin/ginkgo
 ginkgo:
