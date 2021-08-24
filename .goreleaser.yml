@@ -15,6 +15,8 @@ builds:
       - darwin
     goarch:
       - amd64
+    ldflags:
+      - -s -w -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
   - id: extended-arch
     env:
       - CGO_ENABLED=0
@@ -23,6 +25,8 @@ builds:
     goarch:
       - s390x
       - ppc64le
+    ldflags:
+      - -s -w -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
 checksum:
   name_template: 'checksums.txt'
 snapshot:

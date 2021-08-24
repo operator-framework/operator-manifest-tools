@@ -11,6 +11,10 @@ import (
 )
 
 var (
+	Version = "" // set at compile time with -ldflags "-X versserv/cmd.Version=x.y.yz"
+	Commit = ""
+	Date = ""
+
 	verbose bool
 )
 
@@ -28,6 +32,17 @@ var rootCmd = &cobra.Command{
 	},
 }
 
+var versionCmd = &cobra.Command{
+	Use: "version",
+	Short: "Print the version of the tool.",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("version:", Version)
+		fmt.Println("commit:", Commit)
+		fmt.Println("date:", Date)
+		os.Exit(0)
+	},
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -40,6 +55,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Print debug output of the command")
 	rootCmd.AddCommand(pinning.PinningCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 
