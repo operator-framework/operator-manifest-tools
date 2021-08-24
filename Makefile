@@ -6,7 +6,10 @@ release: goreleaser
 	goreleaser release --rm-dist
 
 docs:
-	cd hack/build/docs && go run main.go
+	mkdir -p docs && cd hack/build/docs && go run main.go
+
+clean:
+	rm -rf ./docs
 
 test: ginkgo
 	$(GINKGO) -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress ./...
