@@ -6,31 +6,70 @@ before:
     - go mod tidy
     # you may remove this if you don't need go generate
     - go generate ./...
+env:
+  - CGO_ENABLED=0
 builds:
-  - env:
-      - CGO_ENABLED=0
+  - id: linux-amd64
     goos:
       - linux
-      - windows
-      - darwin
     goarch:
       - amd64
     ldflags:
-      - -s -w -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
-  - id: extended-arch
-    env:
-      - CGO_ENABLED=0
+      - -s -w
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
+  - id: linux-arm64
+    goos:
+      - linux
+    goarch:
+      - arm64
+    ldflags:
+      - -s -w
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
+  - id: linux-s390x
     goos:
       - linux
     goarch:
       - s390x
+    ldflags:
+      - -s -w
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
+  - id: linux-ppc64le
+    goos:
+      - linux
+    goarch:
       - ppc64le
     ldflags:
-      - -s -w -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}" -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
+      - -s -w
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
+  - id: darwin-amd64
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    ldflags:
+      - -s -w
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Version={{.Version}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit={{.Commit}}"
+      - -X "github.com/operator-framework/operator-manifest-tools/cmd.Date={{.Date}}"
+archives:
+  - id: operator-manifest-tools
+    builds:
+      - amd64-oses
+      - arches-linux
+    name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    format: binary
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ incpatch .Tag }}-next"
+  name_template: '{{ incpatch .Tag }}-next'
 changelog:
   sort: asc
   filters:
@@ -38,3 +77,49 @@ changelog:
       - '^chore:'
       - '^docs:'
       - '^test:'
+dockers:
+  - image_templates:
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-amd64'
+    ids: ['linux-amd64']
+    goos: linux
+    goarch: amd64
+    dockerfile: release/goreleaser.Dockerfile
+    use: buildx
+    build_flag_templates:
+      - --platform=linux/amd64
+  - image_templates:
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-arm64'
+    ids: ['linux-arm64']
+    goos: linux
+    goarch: arm64
+    dockerfile: release/goreleaser.Dockerfile
+    use: buildx
+    build_flag_templates:
+      - --platform=linux/arm64
+  - image_templates:
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-ppc64le'
+    ids: ['linux-ppc64le']
+    goos: linux
+    goarch: ppc64le
+    dockerfile: release/goreleaser.Dockerfile
+    use: buildx
+    build_flag_templates:
+      - --platform=linux/ppc64le
+  - image_templates:
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-s390x'
+    ids: ['linux-s390x']
+    goos: linux
+    goarch: s390x
+    dockerfile: release/goreleaser.Dockerfile
+    use: buildx
+    build_flag_templates:
+      - --platform=linux/s390x
+docker_manifests:
+  # IMAGE_Tag is either set by the Makefile or the goreleaser action workflow,
+  # This image is intended to be tagged/pushed on all trunk (master, release branch) commits and tags.
+  - name_template: '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}'
+    image_templates:
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-amd64'
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-arm64'
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-ppc64le'
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-s390x'

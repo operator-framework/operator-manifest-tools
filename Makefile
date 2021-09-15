@@ -1,7 +1,10 @@
 PROJECT_DIR=$(shell pwd)
 
+
 .DEFAULT_GOAL=install
 
+.PHONY: release
+export OMT_IMAGE_REPO ?= quay.io/operator-framework/opm
 release: goreleaser
 	goreleaser release --rm-dist
 

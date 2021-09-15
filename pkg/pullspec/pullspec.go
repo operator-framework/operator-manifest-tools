@@ -176,7 +176,7 @@ func NewRelatedImageEnv(data map[string]interface{}) *RelatedImageEnv {
 	}
 }
 
-// Annotation is a pullspec representing images in the annotation field of 
+// Annotation is a pullspec representing images in the annotation field of
 // kubernetes objects.
 type Annotation struct {
 	namedPullSpec
@@ -262,8 +262,7 @@ const (
 	operatorCsvKind = "ClusterServiceVersion"
 )
 
-var (
-)
+var ()
 
 // FromDirectory creates a NewOperatorCSV from the directory path provided.
 func FromDirectory(path string, pullSpecHeuristic Heuristic) ([]*OperatorCSV, error) {
@@ -338,7 +337,7 @@ func NewOperatorCSVFromFile(
 	return csv, nil
 }
 
-// ToYaml will write the OperatorCSV to yaml string and return the bytes. 
+// ToYaml will write the OperatorCSV to yaml string and return the bytes.
 func (csv *OperatorCSV) ToYaml() ([]byte, error) {
 	buff := bytes.Buffer{}
 

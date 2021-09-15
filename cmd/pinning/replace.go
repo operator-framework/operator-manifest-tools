@@ -27,10 +27,10 @@ var (
 
 // replaceCmd represents the replace command
 var replaceCmd = &cobra.Command{
-	Use:   "replace [flags] MANIFEST_DIR",
+	Use: "replace [flags] MANIFEST_DIR",
 	Short: `Modify the image references in the CSVs found in
 the MANIFEST_DIR based on the given REPLACEMENTS_FILE.`,
-	Args:  cobra.ExactArgs(1),
+	Args: cobra.ExactArgs(1),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		return replaceCmdData.replacementFile.Init(cmd, args)
 	},

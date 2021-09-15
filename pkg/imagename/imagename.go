@@ -18,7 +18,6 @@ const (
 	ExplicitTag
 	// ExplicitNamespace forces a namespace in the repo, will use "library" if no namespace
 	ExplicitNamespace
-	maxKey
 )
 
 var (
@@ -30,13 +29,16 @@ var (
 )
 
 // Set sets the binary flag
-func (b FormatOption) Set(flag FormatOption) FormatOption    { return b | flag }
+func (b FormatOption) Set(flag FormatOption) FormatOption { return b | flag }
+
 // Clear clears the binary flag
-func (b FormatOption) Clear(flag FormatOption) FormatOption  { return b &^ flag }
+func (b FormatOption) Clear(flag FormatOption) FormatOption { return b &^ flag }
+
 // Toggle toggles the flag
 func (b FormatOption) Toggle(flag FormatOption) FormatOption { return b ^ flag }
+
 // Has checks if the flag is set.
-func (b FormatOption) Has(flag FormatOption) bool               { return b&flag != 0 }
+func (b FormatOption) Has(flag FormatOption) bool { return b&flag != 0 }
 
 // ImageName represents the parts of an image reference.
 type ImageName struct {

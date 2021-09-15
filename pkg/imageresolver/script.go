@@ -24,7 +24,6 @@ func (custom *Script) ResolveImageReference(imageReference string) (string, erro
 
 	output, err := exec.Command(path, imageReference).CombinedOutput()
 
-
 	if err != nil {
 		return "", err
 	}

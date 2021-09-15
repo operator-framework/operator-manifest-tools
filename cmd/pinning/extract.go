@@ -25,10 +25,10 @@ var (
 
 	// extractCmd represents the extract command
 	extractCmd = &cobra.Command{
-		Use:   "extract [flags] MANIFEST_DIR",
+		Use: "extract [flags] MANIFEST_DIR",
 		Short: `Identify all the image references in the CSVs found
 in MANIFEST_DIR.`,
-		Args:  cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return extractCmdData.outputFile.Init(cmd, args)
 		},
