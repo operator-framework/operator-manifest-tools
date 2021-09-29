@@ -17,7 +17,7 @@ clean:
 test: ginkgo
 	$(GINKGO) -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress ./...
 
-test-integration: tox install
+test-integration: install
 	cd internal && tox -e integration
 
 install:
@@ -26,11 +26,6 @@ install:
 GINKGO=$(PROJECT_DIR)/bin/ginkgo
 ginkgo:
 	$(call go-get-tool,$(GINKGO),github.com/onsi/ginkgo/ginkgo)
-
-tox:
-	@[ -f $(command -v tox) ] || { \
-	pip3 install tox ;\
-	}
 
 goreleaser:
 	@[ -f $(which goreleaser) ] || go install github.com/goreleaser/goreleaser@latest
