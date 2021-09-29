@@ -78,7 +78,8 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(err).To(Succeed())
 		defer f.Close()
 
-		Expect(f.WriteString("spam")).To(Succeed())
+		_, err = f.WriteString("spam")
+		Expect(err).To(Succeed())
 		sut.authFile = filepath.Join(tmpDir, f.Name())
 
 		expected := imageName

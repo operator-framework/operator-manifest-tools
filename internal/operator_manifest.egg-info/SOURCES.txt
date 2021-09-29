@@ -1,0 +1,8 @@
+setup.py
+operator_manifest.egg-info/PKG-INFO
+operator_manifest.egg-info/SOURCES.txt
+operator_manifest.egg-info/dependency_links.txt
+operator_manifest.egg-info/entry_points.txt
+operator_manifest.egg-info/not-zip-safe
+operator_manifest.egg-info/requires.txt
+operator_manifest.egg-info/top_level.txt

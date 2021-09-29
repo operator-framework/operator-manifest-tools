@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
-	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -46,9 +46,11 @@ each image reference, if a tag is used, it is resolved to a digest by querying t
 container image registry. Then, replaces all the image references in the CSVs with
 the resolved, pinned, version.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			err := pinCmdData.outputExtract.Init(cmd, args)
+			if err := utils.CheckIfDirectoryExists(args[0]); err != nil {
+				return err
+			}
 
-			if err != nil {
+			if err := pinCmdData.outputExtract.Init(cmd, args); err != nil {
 				return err
 			}
 

@@ -1,4 +1,4 @@
-package pullspec
+package utils
 
 import (
 	"strconv"
@@ -17,7 +17,7 @@ type lens struct {
 }
 
 // newLens creates a new lens builder
-func newLens() *lensBuilder {
+func Lens() *lensBuilder {
 	return &lensBuilder{
 		funcs: []func(interface{}) (interface{}, error){},
 		path:  []string{},
@@ -32,11 +32,11 @@ func (d *lensBuilder) L(i int) *lensBuilder {
 		slice, ok := data.([]interface{})
 
 		if !ok {
-			return nil, newError(ErrNotFound, "expected a []interface{} type on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a []interface{} type on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
 		}
 
 		if i < 0 || i >= len(slice) {
-			return nil, newError(ErrNotFound, "not found on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "not found on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
 		}
 
 		return slice[localI], nil
@@ -53,12 +53,12 @@ func (d *lensBuilder) M(key string) *lensBuilder {
 		mmap, ok := data.(map[string]interface{})
 
 		if !ok {
-			return nil, newError(ErrNotFound, "expected a map[string]interface{} type on step %s path %s", localKey, strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a map[string]interface{} type on step %s path %s", localKey, strings.Join(d.path, ","))
 		}
 
 		v, ok := mmap[key]
 		if !ok {
-			return nil, newError(ErrNotFound, "not found on step %s path %s", localKey, strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "not found on step %s path %s", localKey, strings.Join(d.path, ","))
 		}
 
 		return v, nil
@@ -75,7 +75,7 @@ func (d *lensBuilder) Apply(l lens) *lensBuilder {
 		slice, ok := data.([]interface{})
 
 		if !ok {
-			return nil, newError(ErrNotFound, "expected a []interface{} type on step * path %s", strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a []interface{} type on step * path %s", strings.Join(d.path, ","))
 		}
 
 		results := make([]interface{}, 0, len(slice))
@@ -138,7 +138,7 @@ func (l lens) L(data interface{}) ([]interface{}, error) {
 	listAnswer, ok := answer.([]interface{})
 
 	if !ok {
-		return nil, newError(nil, "expected a []interface{} type")
+		return nil, NewError(nil, "expected a []interface{} type")
 	}
 
 	return listAnswer, nil
@@ -163,7 +163,7 @@ func (l lens) M(data interface{}) (map[string]interface{}, error) {
 	mapAnswer, ok := answer.(map[string]interface{})
 
 	if !ok {
-		return nil, newError(nil, "expected a []interface{} type")
+		return nil, NewError(nil, "expected a []interface{} type")
 	}
 
 	return mapAnswer, nil

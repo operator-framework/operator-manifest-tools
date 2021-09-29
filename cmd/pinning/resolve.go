@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
-	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ type resolveCmdArgs struct {
 
 var (
 	resolveCmdData = &resolveCmdArgs{
-		input:      utils.NewInputParam(),
+		input:      utils.NewInputParam(true),
 		outputFile: utils.NewOutputParam(),
 	}
 )
@@ -36,14 +36,15 @@ var resolveCmd = &cobra.Command{
 	Short: "Resolve a list of image tas to shas.",
 	Long:  `Resolve a list of image references into their corresponding image reference digests. Pass - as an arg if you want to use stdin.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		err := resolveCmdData.outputFile.Init(cmd, args)
+		resolveCmdData.input.Name = args[0]
+		err := resolveCmdData.input.Init(cmd, args)
 
 		if err != nil {
 			return err
 		}
 
-		resolveCmdData.input.Name = args[0]
-		err = resolveCmdData.input.Init(cmd, args)
+		err = resolveCmdData.outputFile.Init(cmd, args)
+
 		return err
 	},
 	PostRunE: func(cmd *cobra.Command, args []string) error {

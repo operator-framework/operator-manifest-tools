@@ -1,10 +1,8 @@
 package utils
 
 import (
-	"errors"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -18,6 +16,9 @@ type fileOrCmdParam struct {
 	writer io.Writer
 	reader io.Reader
 	closer io.Closer
+
+	isDir       bool
+	checkExists bool
 }
 
 // InputParam is a parameter used for input. If the name is a "-" it will use the commands
@@ -33,16 +34,16 @@ type OutputParam struct {
 }
 
 // NewInputParam creates a new InputParam.
-func NewInputParam() InputParam {
+func NewInputParam(isDir bool) InputParam {
 	return InputParam{
-		fileOrCmdParam: &fileOrCmdParam{perm: os.O_RDONLY},
+		fileOrCmdParam: &fileOrCmdParam{perm: os.O_RDONLY, isDir: isDir, checkExists: true},
 	}
 }
 
 // NewOutputParam creates a new InputParam.
 func NewOutputParam() OutputParam {
 	return OutputParam{
-		fileOrCmdParam: &fileOrCmdParam{perm: os.O_CREATE | os.O_TRUNC | os.O_WRONLY},
+		fileOrCmdParam: &fileOrCmdParam{perm: os.O_CREATE | os.O_TRUNC | os.O_WRONLY, checkExists: false},
 	}
 }
 
@@ -63,15 +64,22 @@ func (o *OutputParam) Write(p []byte) (int, error) {
 
 // FromFile initializes the param from a filepath using o.Name
 func (o *fileOrCmdParam) FromFile() error {
-	absOutputPath, err := filepath.Abs(o.Name)
-	if err != nil {
-		return errors.New("failed to get absolute path of file " + o.Name)
+	path := o.Name
+
+	if o.checkExists {
+		if _, err := os.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				return NewErrIsNotDirectoryOrDoesNotExist(path)
+			}
+
+			return err
+		}
 	}
 
-	f, err := os.OpenFile(absOutputPath, o.perm, 0755)
+	f, err := os.OpenFile(path, o.perm, 0755)
 
 	if err != nil {
-		return errors.New("failed to open output file " + absOutputPath)
+		return err
 	}
 
 	o.closer = f

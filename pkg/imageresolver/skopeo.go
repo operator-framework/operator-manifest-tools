@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 )
 
 // Skopeo is the default image resolver using skopeo.
@@ -61,7 +63,7 @@ func (skopeo *Skopeo) getSkopeoResults(args ...string) ([]byte, map[string]inter
 
 	skopeoRaw, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, nil, errors.New(string(skopeoRaw))
+		return nil, nil, err
 	}
 
 	var skopeoJSON map[string]interface{}
@@ -119,5 +121,9 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 		return fmt.Sprintf("%s@%s", imageName, digest), nil
 	}
 
-	return "", err
+	if err != nil {
+		return "", utils.NewErrImageDoesNotExist(imageReference, err)
+	}
+
+	return "", nil
 }

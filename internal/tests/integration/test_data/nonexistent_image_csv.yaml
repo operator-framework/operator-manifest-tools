@@ -1,0 +1,137 @@
+#! parse-kind: ClusterServiceVersion
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: testoperator.v0.9.2
+  namespace: placeholder
+  annotations:
+    containerImage: quay.io/containerbuildsystem/operator-manifest-test-image:v0.7.0
+    tectonic-visibility: ocs
+    test-operator-embeded-pullspec: |-
+      Embeded pullspec quay.io/containerbuildsystem/operator-manifest-test-image:v0.6.0 here
+    olm.skipRange: "< 0.6.0"
+spec:
+  displayName: osbs-testing-operator
+  description: |
+    OSBS test image.
+
+    THIS OPERATOR DOESN'T WORK, TESTING PURPOSE ONLY
+  version: 0.9.2
+  maturity: alpha
+  replaces: testoperator.v0.9.0
+  skips:
+  - testoperator.v0.9.1
+  maintainers:
+  - name: OSBS
+
+  provider:
+    name: OSBS
+  labels:
+    alm-owner-osbs: testoperator
+    operated-by: testoperator
+  selector:
+    matchLabels:
+      alm-owner-osbs: testoperator
+      operated-by: testoperator
+  links:
+  - name: operator-manifest Source Code
+    url: https://github.com/containerbuildsystem/operator-manifest
+
+  install:
+    strategy: deployment
+    spec:
+      permissions:
+      - serviceAccountName: test-operator
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          verbs:
+          - "*"
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - "*"
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+      deployments:
+      - name: test-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: test-operator-alm-owned
+          template:
+            metadata:
+              name: test-operator-alm-owned
+              labels:
+                name: test-operator-alm-owned
+              annotations:
+                test-operators-pullspec: "quay.io/containerbuildsystem/operator-manifest-test-image:v0.5.0, quay.io/containerbuildsystem/operator-manifest-test-image:v0.4.0"
+            spec:
+              serviceAccountName: test-operator
+              containers:
+              - name: test-operator
+                command:
+                - test-operator
+                - --create-crd=false
+                image: quay.io/containerbuildsystem/operator-manifest-test-image:v0.9.0
+                env:
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+              - name: test-backup-operator
+                image: quay.io/containerbuildsystem/operator-manifest-test-image:nonexistenttag
+                command:
+                - test-backup-operator
+                - --create-crd=false
+                env:
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: RELATED_IMAGE_TEST_OPERATOR
+                  value: quay.io/containerbuildsystem/operator-manifest-test-image:v0.2.0
+              - name: test-restore-operator
+                image: quay.io/containerbuildsystem/operator-manifest-test-image@sha256:4b94fbb7acec63ab573ef00ebab577c21f2243e50b1b620f7330a49a393960ef
+                command:
+                - test-restore-operator
+                - --create-crd=false
+                env:
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+              initContainers:
+              - name: test-operator-init
+                command:
+                - test-operator-init
+                - --create-crd=false
+                image: quay.io/containerbuildsystem/operator-manifest-test-image:v0.10.0
+                env:
+                - name: RELATED_IMAGE_TEST_OPERATOR_INIT
+                  value: quay.io/containerbuildsystem/operator-manifest-test-image:v0.3.0

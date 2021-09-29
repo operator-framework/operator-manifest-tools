@@ -20,7 +20,7 @@ var _ = Describe("Vars", func() {
 		)
 
 		BeforeEach(func() {
-			sut = NewInputParam()
+			sut = NewInputParam(false)
 			testCmd = &cobra.Command{}
 		})
 

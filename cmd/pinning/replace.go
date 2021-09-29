@@ -5,12 +5,11 @@ import (
 	"errors"
 	"io"
 	"log"
-	"path/filepath"
 	"strings"
 
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
 	"github.com/operator-framework/operator-manifest-tools/pkg/pullspec"
-	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -21,17 +20,21 @@ type replaceCmdArgs struct {
 
 var (
 	replaceCmdData = replaceCmdArgs{
-		replacementFile: utils.NewInputParam(),
+		replacementFile: utils.NewInputParam(false),
 	}
 )
 
 // replaceCmd represents the replace command
 var replaceCmd = &cobra.Command{
-	Use: "replace [flags] MANIFEST_DIR",
-	Short: `Modify the image references in the CSVs found in
-the MANIFEST_DIR based on the given REPLACEMENTS_FILE.`,
-	Args: cobra.ExactArgs(1),
+	Use:   "replace [flags] MANIFEST_DIR REPLACEMENTS_FILES",
+	Short: `Modify the image references in the CSVs found in the MANIFEST_DIR based on the given REPLACEMENTS_FILE.`,
+	Args:  cobra.ExactArgs(2),
 	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := utils.CheckIfDirectoryExists(args[0]); err != nil {
+			return err
+		}
+
+		replaceCmdData.replacementFile.Name = args[1]
 		return replaceCmdData.replacementFile.Init(cmd, args)
 	},
 	PostRunE: func(cmd *cobra.Command, args []string) error {
@@ -49,13 +52,12 @@ the MANIFEST_DIR based on the given REPLACEMENTS_FILE.`,
 }
 
 func init() {
-
-	replaceCmdData.replacementFile.AddFlag(replaceCmd,
-		"replacements_file", "-", `The path to the REPLACEMENTS_FILE.
-The format of this file is a simple JSON object
-where each attribute is a string representing the original image reference and the
-value is a string representing the new value for the image reference. Use - to
-specify stdin.`)
+	// 	replaceCmdData.replacementFile.AddFlag(replaceCmd,
+	// 		"replacements_file", "-", `The path to the REPLACEMENTS_FILE.
+	// The format of this file is a simple JSON object
+	// where each attribute is a string representing the original image reference and the
+	// value is a string representing the new value for the image reference. Use - to
+	// specify stdin.`)
 
 	replaceCmd.Flags().BoolVar(&replaceCmdData.dryRun,
 		"dry-run", false, strings.ReplaceAll(`When set, replacements are not performed. This is useful to determine if the CSV is
@@ -66,7 +68,6 @@ in a state that accepts replacements. By default this option is not set.`, "\n",
 // replace will read manifests from the directory and replace the images from
 // the replacements directory.
 func replace(manifestDir string, replacementsReader io.Reader) error {
-	manifestAbsPath, err := filepath.Abs(manifestDir)
 	replacementsData, err := io.ReadAll(replacementsReader)
 	if err != nil {
 		return errors.New("failed to read data: " + err.Error())
@@ -92,7 +93,11 @@ func replace(manifestDir string, replacementsReader io.Reader) error {
 		replacementImages[*key] = *value
 	}
 
-	operatorManifests, err := pullspec.FromDirectory(manifestAbsPath, pullspec.DefaultHeuristic)
+	operatorManifests, err := pullspec.FromDirectory(manifestDir, pullspec.DefaultHeuristic)
+
+	if err != nil {
+		return err
+	}
 
 	for _, manifest := range operatorManifests {
 		err := manifest.ReplacePullSpecsEverywhere(replacementImages)
@@ -101,7 +106,11 @@ func replace(manifestDir string, replacementsReader io.Reader) error {
 			return errors.New("failed to replace everywhere: " + err.Error())
 		}
 
-		manifest.SetRelatedImages()
+		err = manifest.SetRelatedImages()
+
+		if err != nil {
+			return errors.New("failed to set related images: " + err.Error())
+		}
 
 		if replaceCmdData.dryRun {
 			log.Println("dryRun is enabled, no output was generated")
