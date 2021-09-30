@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
-	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"gopkg.in/yaml.v3"
 )
 

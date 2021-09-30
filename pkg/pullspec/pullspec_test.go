@@ -3,6 +3,7 @@ package pullspec
 import (
 	"strings"
 
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,13 +67,13 @@ var _ = Describe("OperatorCSV", func() {
 	It("should fail on wrong kind", func() {
 		original.data.SetKind("")
 		_, err := NewOperatorCSV("original.yaml", original.data, nil)
-		Expect(err).To(MatchError(ErrNotClusterServiceVersion))
+		Expect(err).To(MatchError(utils.ErrNotClusterServiceVersion))
 	})
 
 	It("should fail on wrong kind name", func() {
 		original.data.SetKind("ClusterResourceDefinition")
 		_, err := NewOperatorCSV("original.yaml", original.data, nil)
-		Expect(err).To(MatchError(ErrNotClusterServiceVersion))
+		Expect(err).To(MatchError(utils.ErrNotClusterServiceVersion))
 	})
 
 	It("should get pullspecs", func() {
@@ -175,7 +176,7 @@ var (
 			"spec", "template", "spec", "containers", "1", "image"},
 	)
 	C3 = newPullSpec(
-		"c3", "jam:1", "r-jam:2",
+		"c3", "jam", "r-jam:2",
 		[]string{"spec", "install", "spec", "deployments", "1",
 			"spec", "template", "spec", "containers", "0", "image"},
 	)

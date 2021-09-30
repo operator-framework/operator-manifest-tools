@@ -5,13 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os/exec"
 	"strings"
 	"sync"
 
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
-	"github.com/operator-framework/operator-manifest-tools/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +25,7 @@ type resolveCmdArgs struct {
 
 var (
 	resolveCmdData = &resolveCmdArgs{
-		input:      utils.NewInputParam(),
+		input:      utils.NewInputParam(true),
 		outputFile: utils.NewOutputParam(),
 	}
 )
@@ -35,16 +34,17 @@ var (
 var resolveCmd = &cobra.Command{
 	Use:   "resolve [flags] IMAGES_FILE",
 	Short: "Resolve a list of image tas to shas.",
-	Long: `Resolve a list of image references into their corresponding image reference digests. Pass - as an arg if you want to use stdin.`,
+	Long:  `Resolve a list of image references into their corresponding image reference digests. Pass - as an arg if you want to use stdin.`,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		err := resolveCmdData.outputFile.Init(cmd, args)
+		resolveCmdData.input.Name = args[0]
+		err := resolveCmdData.input.Init(cmd, args)
 
 		if err != nil {
 			return err
 		}
 
-		resolveCmdData.input.Name = args[0]
-		err = resolveCmdData.input.Init(cmd, args)
+		err = resolveCmdData.outputFile.Init(cmd, args)
+
 		return err
 	},
 	PostRunE: func(cmd *cobra.Command, args []string) error {
@@ -95,15 +95,13 @@ communication using skopeo. Uses skopeo's default if not provided.`)
 }
 
 var runSkopeoLocationCmd sync.Once
-var skopeoLocation = "skopeo"
+var skopeoLocation = ""
 
 func getSkopeoLocation() {
-	skopeoWhich, err := exec.Command("which", "skopeo").Output()
+	skopeoWhich, err := exec.Command("command", "-v", "skopeo").Output()
 
 	if err == nil {
 		skopeoLocation = strings.TrimSpace(string(skopeoWhich))
-	} else {
-		log.Printf("which skopeo command failed, skopeo may not be available on the path")
 	}
 }
 
@@ -114,12 +112,20 @@ func mountResolverOpts(
 ) {
 	runSkopeoLocationCmd.Do(getSkopeoLocation)
 
+	var resolverDefaults map[string]string
+
+	if skopeoLocation != "" {
+		resolverDefaults = map[string]string{"path": skopeoLocation}
+	}
+
 	cmd.Flags().StringVarP(resolverVar,
 		"resolver", "r", "skopeo",
 		fmt.Sprintf("The resolver to use; valid values are [%s]", imageresolver.GetResolverOptions()))
 
 	cmd.Flags().StringToStringVar(resolverArgs,
-		"resolver-args", map[string]string{"path": skopeoLocation}, "The resolver to use; valid values are skopeo or script")
+		"resolver-args",
+		resolverDefaults,
+		"The resolver to use; valid values are skopeo or script")
 }
 
 // resolve will read images from the extracted json and write the resolved

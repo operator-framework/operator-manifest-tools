@@ -1,4 +1,4 @@
-package pullspec
+package utils
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -20,65 +20,66 @@ var _ = Describe("lens", func() {
 			},
 		}
 	})
+
 	It("should work for maps", func() {
-		myLens := newLens().M("a").Build()
+		myLens := Lens().M("a").Build()
 		answer, err := myLens.Lookup(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(Equal("b"))
 
-		myLens = newLens().M("nothere").Build()
+		myLens = Lens().M("nothere").Build()
 		answer, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
-		myLens = newLens().M("a").M("deadend").Build()
+		myLens = Lens().M("a").M("deadend").Build()
 		answer, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 	})
 
 	It("should work for lists", func() {
-		myLens := newLens().M("c").L(0).M("d").Build()
+		myLens := Lens().M("c").L(0).M("d").Build()
 		answer, err := myLens.Lookup(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(Equal(1))
 
-		myLens = newLens().M("c").L(2).M("d").Build()
+		myLens = Lens().M("c").L(2).M("d").Build()
 		answer, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
-		myLens = newLens().M("c").L(-1).M("d").Build()
+		myLens = Lens().M("c").L(-1).M("d").Build()
 		answer, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
-		myLens = newLens().M("c").L(0).L(0).Build()
+		myLens = Lens().M("c").L(0).L(0).Build()
 		answer, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
-		myLens = newLens().M("a").Build()
+		myLens = Lens().M("a").Build()
 		answer, err = myLens.L(data)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("should work for collecting lists", func() {
-		myLens := newLens().M("c").Apply(newLens().M("d").Build()).Build()
+		myLens := Lens().M("c").Apply(Lens().M("d").Build()).Build()
 		answer, err := myLens.L(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(Equal([]interface{}{1, 2}))
 
-		myLens = newLens().M("c").Apply(newLens().M("nothere").Build()).Build()
+		myLens = Lens().M("c").Apply(Lens().M("nothere").Build()).Build()
 		answer, err = myLens.L(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(HaveLen(0))
 
-		myLens = newLens().M("a").Apply(newLens().M("k").Build()).Build()
+		myLens = Lens().M("a").Apply(Lens().M("k").Build()).Build()
 		answer, err = myLens.L(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
-		myLens = newLens().M("c").Apply(newLens().M("d").L(0).Build()).Build()
+		myLens = Lens().M("c").Apply(Lens().M("d").L(0).Build()).Build()
 		answer, err = myLens.L(data)
 		Expect(err).To(Succeed())
 		Expect(answer).To(HaveLen(0))
 
-		myLens = newLens().M("c").Apply(newLens().M("d").L(0).Build()).Build()
+		myLens = Lens().M("c").Apply(Lens().M("d").L(0).Build()).Build()
 		_, err = myLens.M(data)
 		Expect(err).To(HaveOccurred())
 	})

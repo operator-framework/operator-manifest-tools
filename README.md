@@ -1,11 +1,35 @@
 # operator-manifest-tools
+
 Tooling that enables software release pipelines for operator manifests.
+
+## Installation
+
+### Binaries
+
+Binaries are available for Linux (amd64, s390x, ppc64le, and arm64) and Darwin (amd64). This tool doesn't require skopeo to function
+but to not use skopeo is definitely the harder path. If you require the library on an unsupported OS we recommend you use the docker images.
+
+### Docker
+
+The docker images are build on top of the skopeo image available at `quay.io/containers/skopeo:latest`. This provides the latest skopeo in image for operator-manifest tools to use.
+
+```sh
+docker run quay.io/operator-framework/operator-manifest-tools:latest version
+```
+
+### From source
+
+Cloning the repo and running make should be all that is required to install the library from source.
+
+```sh
+make install
+```
 
 ## Commands
 
 Command documentation: [Operator Manifest Tools](docs/operator-manifest-tools.md).
 
-``` sh
+```sh
 Usage:
   operator-manifest-tools [command]
 
@@ -31,7 +55,7 @@ The 3 subcommands can be done at one time using the **pin** command. It is also 
 
 Example:
 
-``` sh
+```sh
 # pin a csv in a directory
 operator-manifest-tools pinning pin $MANIFEST_DIR
 

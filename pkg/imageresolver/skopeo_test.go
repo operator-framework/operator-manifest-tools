@@ -31,10 +31,12 @@ var _ = Describe("skopeo image resolver", func() {
 		}
 	})
 
+	const imageName = "example.com/foo/bar@sha256:c5d902c53b4afcf32ad746fd9d696431650d3fbe8f7b10ca10519543fefd772c"
+
 	It("should use raw if version 2", func() {
 		mockRunner.On("CombinedOutput").Return([]byte(`{"schemaVersion": 2}`), nil)
 
-		expected := "example.com/foo/bar@sha256:c5d902c53b4afcf32ad746fd9d696431650d3fbe8f7b10ca10519543fefd772c"
+		expected := imageName
 		resolved, err := sut.ResolveImageReference("example.com/foo/bar:latest")
 		Expect(err).To(Succeed())
 		Expect(resolved).To(Equal(expected))
@@ -60,7 +62,7 @@ var _ = Describe("skopeo image resolver", func() {
 		mockRunner.On("Run").Return(nil)
 		mockRunner.On("CombinedOutput").Return([]byte(`{"schemaVersion": 2}`), nil)
 
-		reference := "example.com/foo/bar@sha256:c5d902c53b4afcf32ad746fd9d696431650d3fbe8f7b10ca10519543fefd772c"
+		reference := imageName
 		resolved, err := sut.ResolveImageReference(reference)
 		Expect(err).To(Succeed())
 		Expect(resolved).To(Equal(reference))
@@ -76,10 +78,11 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(err).To(Succeed())
 		defer f.Close()
 
-		f.WriteString("spam")
+		_, err = f.WriteString("spam")
+		Expect(err).To(Succeed())
 		sut.authFile = filepath.Join(tmpDir, f.Name())
 
-		expected := "example.com/foo/bar@sha256:c5d902c53b4afcf32ad746fd9d696431650d3fbe8f7b10ca10519543fefd772c"
+		expected := imageName
 		resolved, err := sut.ResolveImageReference("example.com/foo/bar:latest")
 		Expect(resolved).To(Equal(expected))
 		mockProvider.AssertExpectations(GinkgoT())
@@ -100,7 +103,7 @@ var _ = Describe("skopeo image resolver", func() {
 		mockRunner.On("CombinedOutput").Return([]byte{}, errors.New("failed")).Once()
 		mockRunner.On("CombinedOutput").Return([]byte(`{"schemaVersion": 2}`), nil).Once()
 
-		expected := "example.com/foo/bar@sha256:c5d902c53b4afcf32ad746fd9d696431650d3fbe8f7b10ca10519543fefd772c"
+		expected := imageName
 		resolved, err := sut.ResolveImageReference("example.com/foo/bar:latest")
 		Expect(err).To(Succeed())
 		Expect(resolved).To(Equal(expected))

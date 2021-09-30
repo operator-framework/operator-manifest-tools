@@ -44,7 +44,7 @@ func (opts ResolverOptions) String() string {
 
 	for i, v := range opts {
 		str.WriteString(string(v))
-		if i != len(opts) - 1 {
+		if i != len(opts)-1 {
 			str.WriteString(", ")
 		}
 	}

@@ -20,7 +20,7 @@ var _ = Describe("Vars", func() {
 		)
 
 		BeforeEach(func() {
-			sut = NewInputParam()
+			sut = NewInputParam(false)
 			testCmd = &cobra.Command{}
 		})
 
@@ -53,17 +53,17 @@ var _ = Describe("Vars", func() {
 		It("should use the cmd stdin if named -", func() {
 			sut.Name = "-"
 			buff := bytes.Buffer{}
-			
+
 			io.WriteString(&buff, "foo")
 			testCmd.SetIn(&buff)
-			
+
 			err := sut.Init(testCmd, []string{})
 			Expect(err).To(Succeed())
-			
+
 			b, err := io.ReadAll(&sut)
 			Expect(err).To(Succeed())
 			Expect(string(b)).To(Equal("foo"))
-			
+
 			err = sut.Close()
 			Expect(err).To(Succeed())
 		})
@@ -95,27 +95,27 @@ var _ = Describe("Vars", func() {
 
 			_, err = io.WriteString(&sut, "foo")
 			Expect(err).To(Succeed())
-		
+
 			err = sut.Close()
 			Expect(err).To(Succeed())
 
 			b, err := os.ReadFile(sut.Name)
 			Expect(err).To(Succeed())
-			
+
 			Expect(string(b)).To(Equal("foo"))
 		})
 
 		It("should use the cmd stdout if named -", func() {
 			sut.Name = "-"
 			buff := bytes.Buffer{}
-			
+
 			testCmd.SetOut(&buff)
-			
+
 			err := sut.Init(testCmd, []string{})
 			Expect(err).To(Succeed())
-			
+
 			io.WriteString(&sut, "foo")
-			
+
 			Expect(buff.String()).To(Equal("foo"))
 
 			err = sut.Close()

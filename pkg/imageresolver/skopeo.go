@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 )
 
 // Skopeo is the default image resolver using skopeo.
@@ -61,17 +63,17 @@ func (skopeo *Skopeo) getSkopeoResults(args ...string) ([]byte, map[string]inter
 
 	skopeoRaw, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, nil, errors.New(string(skopeoRaw))
+		return nil, nil, err
 	}
 
-	var skopeoJson map[string]interface{}
+	var skopeoJSON map[string]interface{}
 
-	err = json.Unmarshal(skopeoRaw, &skopeoJson)
+	err = json.Unmarshal(skopeoRaw, &skopeoJSON)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return skopeoRaw, skopeoJson, nil
+	return skopeoRaw, skopeoJSON, nil
 }
 
 // ResolveImageReference will use the image resolver to map an image reference
@@ -89,28 +91,28 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 
 	var err error
 	var skopeoRaw []byte
-	var skopeoJson map[string]interface{}
+	var skopeoJSON map[string]interface{}
 
 	for i := 0; i < retryAttempts; i++ {
 		rawArgs := append(args, "--raw")
 		log.Println("skopeo inspect raw args are ", rawArgs)
-		skopeoRaw, skopeoJson, err = skopeo.getSkopeoResults(rawArgs...)
+		skopeoRaw, skopeoJSON, err = skopeo.getSkopeoResults(rawArgs...)
 		if err != nil {
 			continue
 		}
 
-		if version, ok := skopeoJson["schemaVersion"].(float64); ok && version == 2 {
+		if version, ok := skopeoJSON["schemaVersion"].(float64); ok && version == 2 {
 			rawDigest := fmt.Sprintf("%x", sha256.Sum256(skopeoRaw))
 			return fmt.Sprintf("%s@sha256:%s", imageName, rawDigest), nil
 		}
 
 		log.Println("skopeo inspect args are ", args)
-		_, skopeoJson, err = skopeo.getSkopeoResults(args...)
+		_, skopeoJSON, err = skopeo.getSkopeoResults(args...)
 		if err != nil {
 			continue
 		}
 
-		digest, ok := skopeoJson["Digest"].(string)
+		digest, ok := skopeoJSON["Digest"].(string)
 
 		if !ok {
 			return "", errors.New("Digest not on response")
@@ -119,5 +121,9 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 		return fmt.Sprintf("%s@%s", imageName, digest), nil
 	}
 
-	return "", err
+	if err != nil {
+		return "", utils.NewErrImageDoesNotExist(imageReference, err)
+	}
+
+	return "", nil
 }

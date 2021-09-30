@@ -19,14 +19,14 @@ var _ = Describe("script image resolver", func() {
 
 		goodScript = filepath.Join(dir, "good.sh")
 		badScript = filepath.Join(dir, "bad.sh")
-		ioutil.WriteFile(goodScript, []byte(`#!/bin/bash
+		Expect(ioutil.WriteFile(goodScript, []byte(`#!/bin/bash
 echo -n "foo"
 exit 0
-`), 0700)
+`), 0700)).To(Succeed())
 
-		ioutil.WriteFile(badScript, []byte(`#!/bin/bash
+		Expect(ioutil.WriteFile(badScript, []byte(`#!/bin/bash
 exit 1
-`), 0700)
+`), 0700)).To(Succeed())
 	})
 
 	It("should return results", func() {

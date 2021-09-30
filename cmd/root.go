@@ -12,8 +12,8 @@ import (
 
 var (
 	Version = "" // set at compile time with -ldflags "-X versserv/cmd.Version=x.y.yz"
-	Commit = ""
-	Date = ""
+	Commit  = ""
+	Date    = ""
 
 	verbose bool
 )
@@ -22,7 +22,7 @@ var (
 var rootCmd = &cobra.Command{
 	Use:   "operator-manifest-tools",
 	Short: "",
-	Long: ``,
+	Long:  ``,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if !verbose {
 			log.SetOutput(io.Discard)
@@ -33,7 +33,7 @@ var rootCmd = &cobra.Command{
 }
 
 var versionCmd = &cobra.Command{
-	Use: "version",
+	Use:   "version",
 	Short: "Print the version of the tool.",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("version:", Version)
@@ -57,7 +57,6 @@ func init() {
 	rootCmd.AddCommand(pinning.PinningCmd)
 	rootCmd.AddCommand(versionCmd)
 }
-
 
 func Root() *cobra.Command {
 	return rootCmd

@@ -19,6 +19,7 @@ const (
 )
 
 // rules
+// nolint:unused,deadcode,varcheck
 var (
 	templates = template.Must(template.New("all").Parse(""))
 	// A basic name is anything that contains only alphanumeric and name
@@ -52,6 +53,7 @@ var (
 )
 
 // regexes
+// nolint:unused,deadcode
 var (
 	pullspec  = regexp.MustCompile(mustExecute(templates, "{{template `pullspec` .}}", "alnum", alnum, "name", name, "base16", base16))
 	candidate = regexp.MustCompile(`[a-zA-Z0-9/\-\._@:]+`)

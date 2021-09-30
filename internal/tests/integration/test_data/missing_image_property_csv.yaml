@@ -1,0 +1,105 @@
+#! parse-kind: ClusterServiceVersion
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: testoperator.v0.9.2
+  namespace: placeholder
+  annotations:
+    tectonic-visibility: ocs
+    olm.skipRange: "< 0.6.0"
+spec:
+  displayName: osbs-testing-operator
+  description: |
+    OSBS test image.
+
+    THIS OPERATOR DOESN'T WORK, TESTING PURPOSE ONLY
+  version: 0.9.2
+  maturity: alpha
+  replaces: testoperator.v0.9.0
+  skips:
+  - testoperator.v0.9.1
+  maintainers:
+  - name: OSBS
+
+  provider:
+    name: OSBS
+  labels:
+    alm-owner-osbs: testoperator
+    operated-by: testoperator
+  selector:
+    matchLabels:
+      alm-owner-osbs: testoperator
+      operated-by: testoperator
+  links:
+  - name: operator-manifest Source Code
+    url: https://github.com/containerbuildsystem/operator-manifest
+
+  install:
+    strategy: deployment
+    spec:
+      permissions:
+      - serviceAccountName: test-operator
+        rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          verbs:
+          - "*"
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - "*"
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+      deployments:
+      - name: test-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: test-operator-alm-owned
+          template:
+            metadata:
+              name: test-operator-alm-owned
+              labels:
+                name: test-operator-alm-owned
+            spec:
+              serviceAccountName: test-operator
+              containers:
+              - name: test-operator
+                command:
+                - test-operator
+                - --create-crd=false
+                env:
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+              - name: test-backup-operator
+                command:
+                - test-backup-operator
+                - --create-crd=false
+                env:
+                - name: MY_POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: MY_POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
