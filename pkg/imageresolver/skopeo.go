@@ -84,7 +84,7 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 	args := []string{imageReference}
 
 	if skopeo.authFile != "" {
-		args = append(args, "--authFile", skopeo.authFile)
+		args = append(args, "--authfile", skopeo.authFile)
 	}
 
 	retryAttempts := 3

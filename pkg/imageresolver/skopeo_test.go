@@ -41,7 +41,8 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(err).To(Succeed())
 		Expect(resolved).To(Equal(expected))
 		mockProvider.AssertExpectations(GinkgoT())
-		Expect(mockProvider.Calls[0].Arguments.Get(1), ConsistOf("--raw"))
+		Expect(mockProvider.Calls[0].Arguments.Get(1)).To(ContainElement("--raw"))
+		Expect(mockProvider.Calls[0].Arguments.Get(1)).To(ContainElements("--authfile", "nonexistantfile"))
 	})
 
 	It("should make 2 calls if version 1", func() {
@@ -53,8 +54,8 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(err).To(Succeed())
 		Expect(resolved).To(Equal(expected))
 		mockProvider.AssertExpectations(GinkgoT())
-		Expect(mockProvider.Calls[0].Arguments.Get(1), ConsistOf("--raw"))
-		Expect(mockProvider.Calls[1].Arguments.Get(1)).To(Not(ConsistOf("--raw")))
+		Expect(mockProvider.Calls[0].Arguments.Get(1)).To(ContainElement("--raw"))
+		Expect(mockProvider.Calls[1].Arguments.Get(1)).To(Not(ContainElement("--raw")))
 	})
 
 	It("should not change if digest", func() {
@@ -67,7 +68,7 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(err).To(Succeed())
 		Expect(resolved).To(Equal(reference))
 		mockProvider.AssertExpectations(GinkgoT())
-		Expect(mockProvider.Calls[0].Arguments.Get(1), ConsistOf("--raw"))
+		Expect(mockProvider.Calls[0].Arguments.Get(1)).To(ContainElement("--raw"))
 	})
 
 	It("should use an authfile", func() {
@@ -86,8 +87,7 @@ var _ = Describe("skopeo image resolver", func() {
 		resolved, err := sut.ResolveImageReference("example.com/foo/bar:latest")
 		Expect(resolved).To(Equal(expected))
 		mockProvider.AssertExpectations(GinkgoT())
-		Expect(mockProvider.Calls[0].Arguments.Get(1), ConsistOf("--raw"))
-		Expect(mockProvider.Calls[0].Arguments.Get(1), ConsistOf("--authfile", sut.authFile))
+		Expect(mockProvider.Calls[0].Arguments.Get(1)).To(ContainElements("--authfile", sut.authFile))
 	})
 
 	It("should fail if authfile doesn't exist", func() {
@@ -108,9 +108,9 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(err).To(Succeed())
 		Expect(resolved).To(Equal(expected))
 		mockProvider.AssertExpectations(GinkgoT())
-		Expect(mockProvider.Calls[0].Arguments.Get(1), ConsistOf("--raw"))
-		Expect(mockProvider.Calls[1].Arguments.Get(1), ConsistOf("--raw"))
-		Expect(mockProvider.Calls[2].Arguments.Get(1), ConsistOf("--raw"))
+		Expect(mockProvider.Calls[0].Arguments.Get(1)).To(ContainElement("--raw"))
+		Expect(mockProvider.Calls[1].Arguments.Get(1)).To(ContainElement("--raw"))
+		Expect(mockProvider.Calls[2].Arguments.Get(1)).To(ContainElement("--raw"))
 	})
 
 	It("should retry and fail", func() {
@@ -122,9 +122,9 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(err).To(HaveOccurred())
 		mockProvider.AssertExpectations(GinkgoT())
 		Expect(mockProvider.Calls).To(HaveLen(3))
-		Expect(mockProvider.Calls[0].Arguments.Get(1), ConsistOf("--raw"))
-		Expect(mockProvider.Calls[1].Arguments.Get(1), ConsistOf("--raw"))
-		Expect(mockProvider.Calls[2].Arguments.Get(1), ConsistOf("--raw"))
+		Expect(mockProvider.Calls[0].Arguments.Get(1), ContainElement("--raw"))
+		Expect(mockProvider.Calls[1].Arguments.Get(1), ContainElement("--raw"))
+		Expect(mockProvider.Calls[2].Arguments.Get(1), ContainElement("--raw"))
 	})
 
 })
