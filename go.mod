@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
 	github.com/google/go-cmp v0.5.6 // indirect
-	github.com/instrumenta/kubeval v0.16.1 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/spf13/cobra v1.2.1

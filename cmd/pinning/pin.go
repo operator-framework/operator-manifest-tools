@@ -63,15 +63,13 @@ the resolved, pinned, version.`,
 			}
 
 			manifestDir := args[0]
-			resolverArgs := resolveCmdData.resolverArgs
+			resolverArgs := pinCmdData.resolverArgs
 
 			if resolverArgs == nil {
 				resolverArgs = make(map[string]string)
 			}
 
-			if file := resolveCmdData.authFile; file != "" {
-				resolverArgs["authFile"] = file
-			}
+			resolverArgs["authFile"] = pinCmdData.authFile
 
 			resolver, err := imageresolver.GetResolver(
 				imageresolver.ResolverOption(pinCmdData.resolver), resolverArgs)
