@@ -377,8 +377,9 @@ func (csv *OperatorCSV) ToYaml() ([]byte, error) {
 	buff := bytes.Buffer{}
 
 	enc := yamlv3.NewEncoder(&buff)
-	err := enc.Encode(&csv.data.Object)
+	enc.SetIndent(2)
 
+	err := enc.Encode(&csv.data.Object)
 	if err != nil {
 		return nil, err
 	}
