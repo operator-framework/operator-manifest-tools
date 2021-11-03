@@ -129,3 +129,7 @@ docker_manifests:
       - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-arm64'
       - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-ppc64le'
       - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-s390x'
+release:
+  github:
+    owner: operator-framework
+    name: operator-manifest-tools
