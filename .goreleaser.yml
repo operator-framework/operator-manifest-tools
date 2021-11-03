@@ -62,8 +62,11 @@ builds:
 archives:
   - id: operator-manifest-tools
     builds:
-      - amd64-oses
-      - arches-linux
+      - darwin-amd64
+      - linux-amd64
+      - linux-arm64
+      - linux-ppc64le
+      - linux-s390x
     name_template: '{{ .Binary }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     format: binary
 checksum:
