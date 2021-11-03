@@ -123,3 +123,9 @@ docker_manifests:
       - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-arm64'
       - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-ppc64le'
       - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-s390x'
+  - name_template: '{{ .Env.OMT_IMAGE_REPO }}:latest'
+    image_templates:
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-amd64'
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-arm64'
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-ppc64le'
+      - '{{ .Env.OMT_IMAGE_REPO }}:{{ .Version }}-s390x'
