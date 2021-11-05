@@ -208,8 +208,6 @@ func NewAnnotation(data map[string]interface{}, key string, startI, endI int) *A
 func (annotation *Annotation) Image() string {
 	i, j := annotation.startI, annotation.endI
 	text := fmt.Sprintf("%v", annotation.data[annotation.imageKey])
-
-	fmt.Println(text)
 	return text[i:j]
 }
 
