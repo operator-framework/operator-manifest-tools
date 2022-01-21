@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
+	"github.com/operator-framework/operator-manifest-tools/pkg/image"
 	"github.com/operator-framework/operator-manifest-tools/pkg/pullspec"
 	"github.com/spf13/cobra"
 )
@@ -49,31 +50,18 @@ specify stdout. By default - is used.`)
 
 // extract will extract images from the CSV located on the path
 func extract(manifestPath string, output io.Writer) error {
-	out := []interface{}{}
-
 	log.Printf("extracting image references from %s\n", manifestPath)
 	operatorManifests, err := pullspec.FromDirectory(manifestPath, pullspec.DefaultHeuristic)
-
 	if err != nil {
 		return err
 	}
-
-	for _, manifest := range operatorManifests {
-		pullSpecs, err := manifest.GetPullSpecs()
-		if err != nil {
-			return errors.New("error getting pullspec: " + err.Error())
-		}
-
-		for _, pullSpec := range pullSpecs {
-			out = append(out, pullSpec.String())
-		}
-	}
-
-	outBytes, err := json.Marshal(out)
+	imageNames, err := image.Extract(operatorManifests)
 	if err != nil {
+		return err
+	}
+	if err := json.NewEncoder(output).Encode(imageNames); err != nil {
 		return errors.New("error marshaling json: " + err.Error())
 	}
 
-	_, err = output.Write(outBytes)
-	return err
+	return nil
 }

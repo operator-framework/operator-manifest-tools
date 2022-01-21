@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
-	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
+	"github.com/operator-framework/operator-manifest-tools/pkg/image"
 	"github.com/operator-framework/operator-manifest-tools/pkg/pullspec"
 	"github.com/spf13/cobra"
 )
@@ -68,61 +68,39 @@ in a state that accepts replacements. By default this option is not set.`, "\n",
 // replace will read manifests from the directory and replace the images from
 // the replacements directory.
 func replace(manifestDir string, replacementsReader io.Reader) error {
-	replacementsData, err := io.ReadAll(replacementsReader)
-	if err != nil {
-		return errors.New("failed to read data: " + err.Error())
-	}
-
-	var replacements map[string]string
-
-	err = json.Unmarshal(replacementsData, &replacements)
-
-	if err != nil {
-		return errors.New("failed to replacement json: " + err.Error())
-	}
-
-	replacementImages := map[imagename.ImageName]imagename.ImageName{}
-
-	for k, v := range replacements {
-		key := imagename.Parse(k)
-		value := imagename.Parse(v)
-
-		if key == nil || value == nil {
-			return errors.New("failed to parse replacement images: " + err.Error())
-		}
-		replacementImages[*key] = *value
-	}
-
-	operatorManifests, err := pullspec.FromDirectory(manifestDir, pullspec.DefaultHeuristic)
-
+	replacements, err := readReplacements(replacementsReader)
 	if err != nil {
 		return err
 	}
 
+	operatorManifests, err := pullspec.FromDirectory(manifestDir, pullspec.DefaultHeuristic)
+	if err != nil {
+		return err
+	}
+	if err := image.Replace(operatorManifests, replacements); err != nil {
+		return err
+	}
+
+	if replaceCmdData.dryRun {
+		log.Println("dryRun is enabled, no output was generated")
+		return nil
+	}
+
 	for _, manifest := range operatorManifests {
-		err := manifest.ReplacePullSpecsEverywhere(replacementImages)
-
-		if err != nil {
-			return errors.New("failed to replace everywhere: " + err.Error())
-		}
-
-		err = manifest.SetRelatedImages()
-
-		if err != nil {
-			return errors.New("failed to set related images: " + err.Error())
-		}
-
-		if replaceCmdData.dryRun {
-			log.Println("dryRun is enabled, no output was generated")
-			continue
-		}
-
-		err = manifest.Dump(nil)
-		if err != nil {
+		if err := manifest.Dump(nil); err != nil {
 			return errors.New("failed to update the manifests: " + err.Error())
 		}
 	}
 
 	return nil
 
+}
+
+func readReplacements(r io.Reader) (image.Replacements, error) {
+	replacements := make(map[string]string)
+	if err := json.NewDecoder(r).Decode(&replacements); err != nil {
+		return nil, errors.New("failed to read replacemene json: " + err.Error())
+	}
+
+	return image.NewReplacements(replacements)
 }

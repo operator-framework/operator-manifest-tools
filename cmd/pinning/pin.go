@@ -71,8 +71,7 @@ the resolved, pinned, version.`,
 
 			resolverArgs["authFile"] = pinCmdData.authFile
 
-			resolver, err := imageresolver.GetResolver(
-				imageresolver.ResolverOption(pinCmdData.resolver), resolverArgs)
+			resolver, err := imageresolver.GetResolver(imageresolver.ResolverOption(pinCmdData.resolver), resolverArgs)
 
 			if err != nil {
 				return fmt.Errorf("failed to get a resolver: %s", err)
@@ -93,47 +92,34 @@ func pin(
 	resolver imageresolver.ImageResolver,
 	outputExtract, outputReplace utils.OutputParam,
 ) error {
-	err := outputExtract.FromFile()
-	if err != nil {
+	defer outputExtract.Close()
+	defer outputReplace.Close()
+
+	if err := outputExtract.FromFile(); err != nil {
+		return errors.New("error extracting: " + err.Error())
+	}
+	if err := extract(manifestDir, &outputExtract); err != nil {
 		return errors.New("error extracting: " + err.Error())
 	}
 
-	err = extract(manifestDir, &outputExtract)
-
-	if err != nil {
-		return errors.New("error extracting: " + err.Error())
-	}
-
-	outputExtract.Close()
 	inputExtract, err := os.OpenFile(outputExtract.Name, os.O_RDONLY, 0755)
 	if err != nil {
 		return errors.New("failure reading extracted data: " + err.Error())
 	}
 	defer inputExtract.Close()
-
 	if err := outputReplace.FromFile(); err != nil {
 		return errors.New("failure to setup replace output: " + err.Error())
 	}
-
-	err = resolve(resolver,
-		inputExtract,
-		&outputReplace)
-
-	if err != nil {
+	if err = resolve(resolver, inputExtract, &outputReplace); err != nil {
 		return errors.New("error resolving: " + err.Error())
 	}
-
-	outputReplace.Close()
 
 	inputReplace, err := os.OpenFile(outputReplace.Name, os.O_RDONLY, 0755)
 	if err != nil {
 		return errors.New("failure reading replace data: " + err.Error())
 	}
 	defer inputReplace.Close()
-
-	err = replace(manifestDir, inputReplace)
-
-	if err != nil {
+	if err = replace(manifestDir, inputReplace); err != nil {
 		return errors.New("error replacing: " + err.Error())
 	}
 

@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
+	"github.com/operator-framework/operator-manifest-tools/pkg/image"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
 	"github.com/spf13/cobra"
 )
@@ -135,40 +136,15 @@ func resolve(
 	input io.Reader,
 	output io.Writer,
 ) error {
-	data, err := io.ReadAll(input)
-	if err != nil {
-		return errors.New("error reading data: " + err.Error())
-	}
-
 	references := []string{}
-
-	err = json.Unmarshal(data, &references)
-
-	if err != nil {
+	if err := json.NewDecoder(input).Decode(&references); err != nil {
 		return errors.New("error unmarshalling references: " + err.Error())
 	}
-
-	results := map[string]string{}
-	for i := range references {
-		ref := references[i]
-		if strings.Contains(ref, "@") {
-			continue
-		}
-
-		shaRef, err := resolver.ResolveImageReference(ref)
-		if err != nil {
-			return errors.New("error resolving image: " + err.Error())
-		}
-
-		results[ref] = shaRef
-	}
-
-	outBytes, err := json.Marshal(results)
+	replacements, err := image.Resolve(resolver, references)
 	if err != nil {
 		return err
 	}
-
-	if _, err := output.Write(outBytes); err != nil {
+	if err := json.NewEncoder(output).Encode(replacements); err != nil {
 		return errors.New("error writing files: " + err.Error())
 	}
 
