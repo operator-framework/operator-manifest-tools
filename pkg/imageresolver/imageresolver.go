@@ -29,6 +29,7 @@ func (opt *ResolverOption) String() string {
 }
 
 const (
+	ResolverCrane  ResolverOption = "crane"
 	ResolverSkopeo ResolverOption = "skopeo"
 	ResolverScript ResolverOption = "script"
 )
@@ -58,23 +59,37 @@ func GetResolverOptions() ResolverOptions {
 
 func GetResolver(resolver ResolverOption, args map[string]string) (ImageResolver, error) {
 	path, pathOk := args["path"]
-
-	if resolver == ResolverSkopeo {
+	switch resolver {
+	case ResolverSkopeo:
 		if !pathOk {
 			path = "skopeo"
 		}
 
 		authFile := args["authFile"]
 		return NewSkopeoResolver(path, authFile)
-	}
-
-	if resolver == ResolverScript {
+	case ResolverScript:
 		if !pathOk {
 			return nil, fmt.Errorf("path is required for the script image resolver")
 		}
 
 		return &Script{path: path}, nil
+	case ResolverCrane:
+		opts := make([]CraneOption, 0, 1)
+		username, ok := args["username"]
+		if ok {
+			opts = append(opts, WithUserPassAuth(username, args["password"]))
+		}
+
+		return NewCraneResolver(opts...), nil
+	default:
+		return nil, fmt.Errorf("resolver option provided isn't valid: %s", resolver)
+	}
+}
+
+func getName(imageReference string) string {
+	if strings.Contains(imageReference, "@") {
+		return strings.Split(imageReference, "@")[0]
 	}
 
-	return nil, fmt.Errorf("resolver option provided isn't valid: %s", resolver)
+	return strings.Split(imageReference, ":")[0]
 }

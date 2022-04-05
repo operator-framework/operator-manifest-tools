@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 )
@@ -39,14 +38,6 @@ func NewSkopeoResolver(skopeoPath, authFile string) (*Skopeo, error) {
 			return exec.Command(name, args...)
 		},
 	}, nil
-}
-
-func getName(imageReference string) string {
-	if strings.Contains(imageReference, "@") {
-		return strings.Split(imageReference, "@")[0]
-	}
-
-	return strings.Split(imageReference, ":")[0]
 }
 
 const (

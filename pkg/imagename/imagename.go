@@ -1,6 +1,7 @@
 package imagename
 
 import (
+	"encoding"
 	"errors"
 	"fmt"
 	"strings"
@@ -46,6 +47,13 @@ type ImageName struct {
 	Namespace string
 	Repo      string
 	Tag       string
+}
+
+var _ encoding.TextMarshaler = ImageName{}
+
+// MarshalText marhsals the image name into a byte string so it can be used as a JSON map key
+func (name ImageName) MarshalText() ([]byte, error) {
+	return []byte(name.String()), nil
 }
 
 // HasDigest return true if the image uses a digest.
