@@ -24,21 +24,9 @@ install:
 	go install -ldflags='-X "github.com/operator-framework/operator-manifest-tools/cmd.Version=dev" -X "github.com/operator-framework/operator-manifest-tools/cmd.Commit=dev" -X "github.com/operator-framework/operator-manifest-tools/cmd.Date=$(shell date +"%Y-%m-%dT%H:%M:%S%z")"'
 
 GINKGO=$(PROJECT_DIR)/bin/ginkgo
+LOCALBIN=$(PROJECT_DIR)/bin
 ginkgo:
-	$(call go-get-tool,$(GINKGO),github.com/onsi/ginkgo/ginkgo)
+	GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/ginkgo@latest
 
 goreleaser:
 	@[ -f $(which goreleaser) ] || go install github.com/goreleaser/goreleaser@latest
-
-# go-get-tool will 'go get' any package $2 and install it to $1.
-define go-get-tool
-@[ -f $(1) ] || { \
-set -e ;\
-TMP_DIR=$$(mktemp -d) ;\
-cd $$TMP_DIR ;\
-go mod init tmp ;\
-echo $(1) ;\
-GOBIN=$(PROJECT_DIR)/bin go get -u $(2) ;\
-rm -rf $$TMP_DIR ;\
-}
-endef
