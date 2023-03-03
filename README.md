@@ -1,6 +1,6 @@
 # operator-manifest-tools
 
-Tooling that enables software release pipelines for operator manifests.
+Tooling that enables software release pipelines for operator manifests. A
 
 ## Installation
 
