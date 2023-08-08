@@ -21,6 +21,23 @@ var _ = Describe("GetResolver", func() {
 			Expect(err).To(BeNil())
 			Expect(resolver).NotTo(BeNil())
 			Expect(resolver.(CraneResolver).useDefault).To(BeTrue())
+			Expect(resolver.(CraneResolver).insecure).To(BeFalse())
+		})
+	})
+})
+
+var _ = Describe("GetResolver", func() {
+	Describe("CraneAuth", func() {
+		It("returns a Crane resolver with the insecure option", func() {
+			args := make(map[string]string)
+			args["usedefault"] = "true"
+			args["insecure"] = "true"
+
+			resolver, err := GetResolver(ResolverCrane, args)
+			Expect(err).To(BeNil())
+			Expect(resolver).NotTo(BeNil())
+			Expect(resolver.(CraneResolver).useDefault).To(BeTrue())
+			Expect(resolver.(CraneResolver).insecure).To(BeTrue())
 		})
 	})
 })
