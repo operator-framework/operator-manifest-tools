@@ -6,8 +6,7 @@ Tooling that enables software release pipelines for operator manifests.
 
 ### Binaries
 
-Binaries are available for Linux (amd64, s390x, ppc64le, and arm64) and Darwin (amd64). This tool doesn't require skopeo to function
-but to not use skopeo is definitely the harder path. If you require the library on an unsupported OS we recommend you use the docker images.
+Binaries are available for Linux (amd64, s390x, ppc64le, and arm64) and Darwin (amd64). This tool bundles the [crane resolver](https://github.com/google/go-containerregistry/blob/main/cmd/crane/doc/crane.md)and uses it by default. Use of alternate or even custom image resolvers is available; please see the sections below.
 
 ### Docker
 
@@ -62,7 +61,10 @@ operator-manifest-tools pinning pin $MANIFEST_DIR
 # equalivent to pin; doesn't generate temporary files for the cmd though
 operator-manifest-tools pinning extract $MANIFEST_DIR - | operator-manifest-tools pinning resolve - | operator-manifest-tools pinning replace $MANIFEST_DIR
 ```
+#### Using alternate resolvers
+
+If the built in `crane` resolver is causing issues, there is a built in alternate skopeo resolver. It requires the [skopeo](https://github.com/containers/skopeo) binary to be on the host machine. Just run the commands with the option `--resolver skopeo`
 
 #### Custom Resolve Scripts
 
-It's possible to replace skopeo with other resolve mechanisms (i.e. docker). The resolve and pin command can take parameters that will override the skopeo default with a script. Please see [hack/resolvers/skopeo.sh](hack/resolvers/skopeo.sh) for an example using skopeo.
+It's possible to replace skopeo with other resolve mechanisms (i.e. docker). The resolve and pin command can take parameters that will override the crane default with a script. Please see [hack/resolvers/skopeo.sh](hack/resolvers/skopeo.sh) for an example using skopeo.

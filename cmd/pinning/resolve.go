@@ -120,7 +120,7 @@ func mountResolverOpts(
 	}
 
 	cmd.Flags().StringVarP(resolverVar,
-		"resolver", "r", "skopeo",
+		"resolver", "r", "crane",
 		fmt.Sprintf("The resolver to use; valid values are [%s]", imageresolver.GetResolverOptions()))
 
 	cmd.Flags().StringToStringVar(resolverArgs,
