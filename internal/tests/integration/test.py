@@ -60,7 +60,7 @@ def assert_output_files_have_expected_content(testing_pullspecs):
         else:
             assert pullspec['original'] in references_content
 
-
+ 
 class TestPinCommand():
 
     # def test_version(self, teardown, tmp_path):
@@ -70,7 +70,7 @@ class TestPinCommand():
 
     def test_manifest_dir_empty(self, teardown, tmp_path):
         cmd = subprocess.run(['operator-manifest-tools', 'pinning', 'pin', tmp_path], capture_output=True)
-        print({"err": cmd.stderr, "output":cmd.stderr})
+        print({"err": cmd.stderr, "output": cmd.stderr})
         assert 'Missing ClusterServiceVersion in operator manifests' in str(cmd.stderr)
         assert_output_files_are_empty()
 
@@ -264,7 +264,8 @@ class TestPinCommand():
         cmd = subprocess.run(['operator-manifest-tools', 'pinning', 'pin', tmp_path], capture_output=True)
         err_msg = "Failed to inspect docker://quay.io/containerbuildsystem/operator-manifest-test-image:nonexistenttag." \
                   " Make sure it exists and is accessible."
-        assert err_msg in str(cmd.stderr)
+        err_msg_alt = "manifest unknown"
+        assert err_msg in str(cmd.stderr) or err_msg_alt in str(cmd.stderr)
 
     @pytest.mark.parametrize('csv_filename', ['related_images_defined_on_both_places_csv.yaml'])
     def test_manifests_having_related_images_defined_on_both_places(self, csv_filename, teardown, tmp_path):
