@@ -6,7 +6,7 @@ Tooling that enables software release pipelines for operator manifests.
 
 ### Binaries
 
-Binaries are available for Linux (amd64, s390x, ppc64le, and arm64) and Darwin (amd64). This tool bundles the [crane resolver](https://github.com/google/go-containerregistry/blob/main/cmd/crane/doc/crane.md)and uses it by default. Use of alternate or even custom image resolvers is available; please see the sections below.
+Binaries are available for Linux (amd64, s390x, ppc64le, and arm64) and Darwin (amd64). This tool bundles the [crane resolver](https://github.com/google/go-containerregistry/blob/main/cmd/crane/doc/crane.md) and uses it by default. Use of alternate or even custom image resolvers is available; please see the sections below.
 
 ### Docker
 
