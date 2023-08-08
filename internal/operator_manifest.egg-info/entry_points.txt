@@ -1,3 +1,2 @@
 [console_scripts]
 operator-manifest = operator_manifest.cli:main
-

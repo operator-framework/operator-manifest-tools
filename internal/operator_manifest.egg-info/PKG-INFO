@@ -1,10 +1,8 @@
 Metadata-Version: 2.1
 Name: operator-manifest
 Version: 2.0.0
-Summary: UNKNOWN
 Home-page: https://github.com/containerbuildsystem/operator-manifest
 License: BSD-3-Clause
-Platform: UNKNOWN
 Classifier: License :: OSI Approved :: BSD License
 Classifier: Programming Language :: Python :: 3.6
 Classifier: Programming Language :: Python :: 3.7
@@ -12,5 +10,6 @@ Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Requires-Python: >=3.6
 
-UNKNOWN
+Built-in functions, exceptions, and other objects.
 
+Noteworthy: None is the `nil' object; Ellipsis represents `...' in slices.
