@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
-	github.com/google/go-containerregistry v0.16.1
+	github.com/google/go-containerregistry v0.18.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.27.10
 	github.com/spf13/cobra v1.7.0
