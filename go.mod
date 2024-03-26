@@ -6,7 +6,7 @@ require (
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
 	github.com/google/go-containerregistry v0.16.1
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.29.0
+	github.com/onsi/gomega v1.32.0
 	github.com/spf13/cobra v1.7.0
 	github.com/stretchr/testify v1.9.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -43,9 +43,9 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/vbatts/tar-split v0.11.3 // indirect
-	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
