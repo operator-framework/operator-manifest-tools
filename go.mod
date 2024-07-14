@@ -6,7 +6,7 @@ toolchain go1.22.2
 
 require (
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
-	github.com/google/go-containerregistry v0.19.1
+	github.com/google/go-containerregistry v0.20.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.32.0
 	github.com/spf13/cobra v1.8.0
