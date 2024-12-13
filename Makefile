@@ -6,7 +6,7 @@ PROJECT_DIR=$(shell pwd)
 .PHONY: release
 export OMT_IMAGE_REPO ?= quay.io/operator-framework/operator-manifest-tools
 release: goreleaser
-	goreleaser release --rm-dist
+	goreleaser release --clean
 
 docs:
 	mkdir -p docs && cd hack/build/docs && go run main.go
