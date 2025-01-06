@@ -1,8 +1,6 @@
 module github.com/operator-framework/operator-manifest-tools
 
-go 1.22.0
-
-toolchain go1.22.2
+go 1.23.4
 
 require (
 	github.com/benjamintf1/unmarshalledmatchers v1.0.0
