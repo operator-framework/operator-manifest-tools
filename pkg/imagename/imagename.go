@@ -21,9 +21,14 @@ const (
 	ExplicitNamespace
 )
 
+const (
+	// invalidImageNameString used in Stringer method to represent invalid ImageName
+	invalidImageNameString = "<invalid>"
+)
+
 var (
 	// DefaultGetStringOptions is the default set of options
-	DefaultGetStringOptions FormatOption = Registry | Tag
+	DefaultGetStringOptions = Registry | Tag
 
 	// ErrNoImageRepository returns when there is there is no image repository
 	ErrNoImageRepository = errors.New("No image repository specified")
@@ -121,10 +126,14 @@ func (imageName *ImageName) Enclose(organization string) {
 // String returns the string representation of the image using
 // the registry and tag formatting.
 func (imageName *ImageName) String() string {
-	result, err := imageName.ToString(Registry | Tag)
+	// Guard against nil receiver; Stringer implementations should not panic.
+	if imageName == nil {
+		return invalidImageNameString
+	}
+	result, err := imageName.ToString(DefaultGetStringOptions)
 
 	if err != nil {
-		panic(err)
+		return invalidImageNameString
 	}
 
 	return result

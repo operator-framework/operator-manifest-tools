@@ -59,6 +59,19 @@ var _ = Describe("ImageNameParse", func() {
 		),
 	)
 
+	DescribeTable("String() returns <invalid> for invalid ImageNames",
+		func(imageName *ImageName, expectedString string) {
+			// String() should never panic, even for invalid ImageNames
+			Expect(imageName.String()).To(Equal(expectedString))
+		},
+		Entry("nil ImageName", (*ImageName)(nil), invalidImageNameString),
+		Entry("empty ImageName", &ImageName{}, invalidImageNameString),
+		Entry("missing repo", &ImageName{Registry: "example.com", Namespace: "namespace", Repo: "", Tag: "latest"}, invalidImageNameString),
+		Entry("only registry", &ImageName{Registry: "example.com"}, invalidImageNameString),
+		Entry("only namespace", &ImageName{Namespace: "namespace"}, invalidImageNameString),
+		Entry("only tag", &ImageName{Tag: "latest"}, invalidImageNameString),
+	)
+
 	DescribeTable("encloses",
 		func(repo, organization, enclosedRepo, registry, tag string) {
 			reference := repo
