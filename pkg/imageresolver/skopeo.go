@@ -87,7 +87,7 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 	var skopeoRaw []byte
 	var skopeoJSON map[string]any
 
-	for i := 0; i < retryAttempts; i++ {
+	for range retryAttempts {
 		rawArgs := append(args, "--raw")
 		log.Println("skopeo inspect raw args are ", rawArgs)
 		skopeoRaw, skopeoJSON, err = skopeo.getSkopeoResults(rawArgs...)
