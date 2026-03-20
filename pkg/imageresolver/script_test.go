@@ -1,7 +1,7 @@
 package imageresolver
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo"
@@ -14,17 +14,17 @@ var _ = Describe("script image resolver", func() {
 	var badScript string
 
 	BeforeEach(func() {
-		dir, err := ioutil.TempDir("", "script")
+		dir, err := os.MkdirTemp("", "script")
 		Expect(err).To(Succeed())
 
 		goodScript = filepath.Join(dir, "good.sh")
 		badScript = filepath.Join(dir, "bad.sh")
-		Expect(ioutil.WriteFile(goodScript, []byte(`#!/bin/bash
+		Expect(os.WriteFile(goodScript, []byte(`#!/bin/bash
 echo -n "foo"
 exit 0
 `), 0700)).To(Succeed())
 
-		Expect(ioutil.WriteFile(badScript, []byte(`#!/bin/bash
+		Expect(os.WriteFile(badScript, []byte(`#!/bin/bash
 exit 1
 `), 0700)).To(Succeed())
 	})
