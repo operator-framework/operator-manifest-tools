@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"io/fs"
@@ -569,7 +570,7 @@ func (csv *OperatorCSV) SetRelatedImages() error {
 	return nil
 }
 
-var knownAnnotationKeys = stringSlice{"containerImage"}
+var knownAnnotationKeys = []string{"containerImage"}
 
 func (csv *OperatorCSV) namedPullSpecs() ([]NamedPullSpec, error) {
 	pullspecs := []NamedPullSpec{}
@@ -789,7 +790,7 @@ func (csv *OperatorCSV) relatedImageEnvPullSpecs() ([]NamedPullSpec, error) {
 	return relatedImageEnvs, nil
 }
 
-func (csv *OperatorCSV) annotationPullSpecs(keyFilter stringSlice) ([]NamedPullSpec, error) {
+func (csv *OperatorCSV) annotationPullSpecs(keyFilter []string) ([]NamedPullSpec, error) {
 	pullSpecs := []NamedPullSpec{}
 
 	annotationObjects, err := csv.findAllAnnotations()
@@ -804,7 +805,7 @@ func (csv *OperatorCSV) annotationPullSpecs(keyFilter stringSlice) ([]NamedPullS
 			key := rKey
 			val := obj[key]
 
-			if keyFilter != nil && !keyFilter.Contains(key) {
+			if keyFilter != nil && !slices.Contains(keyFilter, key) {
 				continue
 			}
 
@@ -818,7 +819,8 @@ func (csv *OperatorCSV) annotationPullSpecs(keyFilter stringSlice) ([]NamedPullS
 		}
 	}
 
-	return namedPullSpecSlice(pullSpecs).Reverse(), nil
+	slices.Reverse(pullSpecs)
+	return pullSpecs, nil
 }
 
 var (
@@ -969,27 +971,6 @@ func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]a
 	}
 
 	return nil
-}
-
-type stringSlice []string
-
-func (l stringSlice) Contains(in string) bool {
-	for _, key := range l {
-		if key == in {
-			return true
-		}
-	}
-	return false
-}
-
-type namedPullSpecSlice []NamedPullSpec
-
-func (n namedPullSpecSlice) Reverse() namedPullSpecSlice {
-	for i := 0; i < len(n)/2; i++ {
-		j := len(n) - i - 1
-		n[i], n[j] = n[j], n[i]
-	}
-	return n
 }
 
 func closeFile(f *os.File) {
