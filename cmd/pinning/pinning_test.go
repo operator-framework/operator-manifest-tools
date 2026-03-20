@@ -4,15 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	. "github.com/benjamintf1/unmarshalledmatchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
+	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
 	"gopkg.in/yaml.v3"
 )
 
@@ -35,13 +34,13 @@ var _ = Describe("pinning", func() {
 		// 	Delims("{", "}").Parse(CSV_TEMPLATE_WITH_RELATED_IMAGES))
 		resolved = template.Must(template.New("resolved").Parse(CSV_RESOLVED_TEMPLATE))
 
-		dir, _ = ioutil.TempDir("", "script")
-		manifestDir, _ = ioutil.TempDir("", "pinning_test_")
+		dir, _ = os.MkdirTemp("", "script")
+		manifestDir, _ = os.MkdirTemp("", "pinning_test_")
 		csvFilePath = filepath.Join(manifestDir, "clusterserviceversion.yaml")
 
 		resolverScript := filepath.Join(dir, "resolver.sh")
 
-		ioutil.WriteFile(resolverScript, []byte(`#!/bin/bash
+		os.WriteFile(resolverScript, []byte(`#!/bin/bash
 if [ "$1" == "registry.example.com/eggs:9.8" ]; then
    echo -n "2"
    exit 0
@@ -187,7 +186,7 @@ exit 1
 			err := replace(manifestDir, bytes.NewReader(resolveData))
 			Expect(err).To(Succeed())
 
-			fileData, err := ioutil.ReadFile(csvFilePath)
+			fileData, err := os.ReadFile(csvFilePath)
 			Expect(err).To(Succeed())
 
 			Expect(fileData).To(MatchUnorderedYAML(resolvedFile))
@@ -220,12 +219,12 @@ exit 1
 					},
 				})
 
-			extractFile, err = ioutil.TempFile(dir, "extract")
+			extractFile, err = os.CreateTemp(dir, "extract")
 			Expect(err).To(Succeed())
 			outputExtract = utils.NewOutputParam()
 			outputExtract.Name = extractFile.Name()
 
-			replaceFile, err = ioutil.TempFile(dir, "replace")
+			replaceFile, err = os.CreateTemp(dir, "replace")
 			Expect(err).To(Succeed())
 			outputReplace = utils.NewOutputParam()
 			outputReplace.Name = replaceFile.Name()
