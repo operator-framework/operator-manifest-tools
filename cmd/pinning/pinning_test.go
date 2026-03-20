@@ -89,7 +89,7 @@ exit 1
 			extractData := bytes.Buffer{}
 			extract(manifestDir, &extractData)
 
-			extractJson := []interface{}{}
+			extractJson := []any{}
 
 			Expect(json.Unmarshal(extractData.Bytes(), &extractJson)).To(Succeed())
 			Expect(extractJson).To(HaveLen(2))
@@ -118,7 +118,7 @@ exit 1
 					},
 				})
 
-			extractData, _ = json.Marshal([]interface{}{
+			extractData, _ = json.Marshal([]any{
 				"registry.example.com/eggs:9.8",
 				"registry.example.com/maps/spam-operator:1.2",
 			})
@@ -129,11 +129,11 @@ exit 1
 			err := resolve(resolver, bytes.NewReader(extractData), &resolveData)
 			Expect(err).To(Succeed())
 
-			resolveJson := map[string]interface{}{}
+			resolveJson := map[string]any{}
 			Expect(json.Unmarshal(resolveData.Bytes(), &resolveJson)).To(Succeed())
 			Expect(resolveJson).To(HaveLen(2))
 			Expect(resolveJson).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
 				}))
@@ -177,7 +177,7 @@ exit 1
 
 			resolvedFile = resolvedFileBuffer.Bytes()
 
-			resolveData, _ = json.Marshal(map[string]interface{}{
+			resolveData, _ = json.Marshal(map[string]any{
 				"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 				"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
 			})
@@ -261,7 +261,7 @@ exit 1
 			extractAnswer, err := os.ReadFile(outputExtract.Name)
 			Expect(err).To(Succeed())
 
-			extractJson := []interface{}{}
+			extractJson := []any{}
 
 			Expect(json.Unmarshal(extractAnswer, &extractJson)).To(Succeed())
 			Expect(extractJson).To(HaveLen(2))
@@ -271,11 +271,11 @@ exit 1
 			resolveAnswer, err := os.ReadFile(outputReplace.Name)
 			Expect(err).To(Succeed())
 
-			resolveJson := map[string]interface{}{}
+			resolveJson := map[string]any{}
 			Expect(json.Unmarshal(resolveAnswer, &resolveJson)).To(Succeed())
 			Expect(resolveJson).To(HaveLen(2))
 			Expect(resolveJson).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
 				}))
@@ -284,7 +284,7 @@ exit 1
 			Expect(err).To(Succeed())
 			Expect(replaceAnswer).To(MatchUnorderedYAML(resolvedFile))
 
-			validYaml := map[string]interface{}{}
+			validYaml := map[string]any{}
 			Expect(yaml.Unmarshal(replaceAnswer, &validYaml)).To(Succeed())
 		})
 	})

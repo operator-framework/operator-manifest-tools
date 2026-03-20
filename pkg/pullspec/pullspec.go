@@ -25,14 +25,14 @@ type NamedPullSpec interface {
 	fmt.Stringer
 	Name() string
 	Image() string
-	Data() map[string]interface{}
+	Data() map[string]any
 	SetImage(string)
-	AsYamlObject() map[string]interface{}
+	AsYamlObject() map[string]any
 }
 
 type namedPullSpec struct {
 	imageKey string
-	data     map[string]interface{}
+	data     map[string]any
 }
 
 // Name returns the name of the pull spec data.
@@ -46,7 +46,7 @@ func (named *namedPullSpec) Image() string {
 }
 
 // Data returns the namedPullSpec as a json map
-func (named *namedPullSpec) Data() map[string]interface{} {
+func (named *namedPullSpec) Data() map[string]any {
 	return named.data
 }
 
@@ -56,8 +56,8 @@ func (named *namedPullSpec) SetImage(image string) {
 }
 
 // AsYamlObject returns the pull spec as an object
-func (named *namedPullSpec) AsYamlObject() map[string]interface{} {
-	return map[string]interface{}{
+func (named *namedPullSpec) AsYamlObject() map[string]any {
+	return map[string]any{
 		"name":  named.Name(),
 		"image": named.Image(),
 	}
@@ -74,11 +74,11 @@ func (container *Container) String() string {
 }
 
 // NewContainer returns a container pullspec
-func NewContainer(data interface{}) (*Container, error) {
-	dataMap, ok := data.(map[string]interface{})
+func NewContainer(data any) (*Container, error) {
+	dataMap, ok := data.(map[string]any)
 
 	if !ok {
-		return nil, errors.New("expected map[string]interface{} type")
+		return nil, errors.New("expected map[string]any type")
 	}
 
 	if _, ok := dataMap["image"]; !ok {
@@ -105,11 +105,11 @@ func (container *InitContainer) String() string {
 }
 
 // NewInitContainer returns a new init container pullspec.
-func NewInitContainer(data interface{}) (*InitContainer, error) {
-	dataMap, ok := data.(map[string]interface{})
+func NewInitContainer(data any) (*InitContainer, error) {
+	dataMap, ok := data.(map[string]any)
 
 	if !ok {
-		return nil, errors.New("expected map[string]interface{} type")
+		return nil, errors.New("expected map[string]any type")
 	}
 
 	if _, ok := dataMap["image"]; !ok {
@@ -135,11 +135,11 @@ func (relatedImage *RelatedImage) String() string {
 }
 
 // NewRelatedImage returns a new related image pullspec.
-func NewRelatedImage(data interface{}) (*RelatedImage, error) {
-	dataMap, ok := data.(map[string]interface{})
+func NewRelatedImage(data any) (*RelatedImage, error) {
+	dataMap, ok := data.(map[string]any)
 
 	if !ok {
-		return nil, errors.New("expected map[string]interface{} type")
+		return nil, errors.New("expected map[string]any type")
 	}
 
 	return &RelatedImage{
@@ -167,16 +167,16 @@ func (relatedImageEnv *RelatedImageEnv) Name() string {
 	return strings.TrimSpace(strings.ToLower(text[len("RELATED_IMAGE_"):]))
 }
 
-// AsYamlObject returns the pullspec as a map[string]interface{}.
-func (relatedImageEnv *RelatedImageEnv) AsYamlObject() map[string]interface{} {
-	return map[string]interface{}{
+// AsYamlObject returns the pullspec as a map[string]any.
+func (relatedImageEnv *RelatedImageEnv) AsYamlObject() map[string]any {
+	return map[string]any{
 		"name":  relatedImageEnv.Name(),
 		"image": relatedImageEnv.Image(),
 	}
 }
 
 // NewRelatedImageEnv returns a new related iamge env pullspec.
-func NewRelatedImageEnv(data map[string]interface{}) *RelatedImageEnv {
+func NewRelatedImageEnv(data map[string]any) *RelatedImageEnv {
 	return &RelatedImageEnv{
 		namedPullSpec: namedPullSpec{
 			imageKey: "value",
@@ -193,7 +193,7 @@ type Annotation struct {
 }
 
 // NewAnnotation returns a new annotation pullspec.
-func NewAnnotation(data map[string]interface{}, key string, startI, endI int) *Annotation {
+func NewAnnotation(data map[string]any, key string, startI, endI int) *Annotation {
 	return &Annotation{
 		namedPullSpec: namedPullSpec{
 			imageKey: key,
@@ -234,9 +234,9 @@ func (annotation *Annotation) Name() string {
 	return fmt.Sprintf("%s-%s-annotation", image.Repo, tag)
 }
 
-// AsYamlObject returns the annotation pullspec as a map[string]interface{}.
-func (annotation *Annotation) AsYamlObject() map[string]interface{} {
-	return map[string]interface{}{
+// AsYamlObject returns the annotation pullspec as a map[string]any.
+func (annotation *Annotation) AsYamlObject() map[string]any {
+	return map[string]any{
 		"name":  annotation.Name(),
 		"image": annotation.Image(),
 	}
@@ -427,7 +427,7 @@ func (csv *OperatorCSV) HasRelatedImageEnvs() bool {
 
 // GetPullSpecs will return a list of all the images found in via pullspecs.
 func (csv *OperatorCSV) GetPullSpecs() ([]*imagename.ImageName, error) {
-	pullspecs := make(map[imagename.ImageName]interface{})
+	pullspecs := make(map[imagename.ImageName]any)
 
 	namedList, err := csv.namedPullSpecs()
 
@@ -549,7 +549,7 @@ func (csv *OperatorCSV) SetRelatedImages() error {
 		return fmt.Errorf("%s - Found conflicts when setting relatedImages:\n%s", csv.path, strings.Join(conflicts, "\n"))
 	}
 
-	relatedImages := []map[string]interface{}{}
+	relatedImages := []map[string]any{}
 
 	for _, p := range byName {
 		log.Printf("%s - Set relateImage %s (from %s): %s\n", csv.path, p.Name(), p.String(), p.Image())
@@ -558,12 +558,12 @@ func (csv *OperatorCSV) SetRelatedImages() error {
 
 	spec, ok := csv.data.Object["spec"]
 	if !ok {
-		spec = map[string]interface{}{
+		spec = map[string]any{
 			"relatedImages": relatedImages,
 		}
 		csv.data.Object["spec"] = spec
 	} else {
-		spec.(map[string]interface{})["relatedImages"] = relatedImages
+		spec.(map[string]any)["relatedImages"] = relatedImages
 	}
 
 	return nil
@@ -656,7 +656,7 @@ func (csv *OperatorCSV) relatedImageEnvPullspecs() ([][]int, error) {
 
 var deploymentLens = utils.Lens().M("spec").M("install").M("spec").M("deployments").Build()
 
-func (csv *OperatorCSV) deployments() ([]interface{}, error) {
+func (csv *OperatorCSV) deployments() ([]any, error) {
 	return deploymentLens.L(csv.data.Object)
 }
 
@@ -760,13 +760,13 @@ func (csv *OperatorCSV) relatedImageEnvPullSpecs() ([]NamedPullSpec, error) {
 			continue
 		}
 
-		envMaps, ok := env.([]interface{})
+		envMaps, ok := env.([]any)
 		if !ok {
 			return nil, errors.New("expected type slice")
 		}
 
 		for j := range envMaps {
-			envMap, ok := envMaps[j].(map[string]interface{})
+			envMap, ok := envMaps[j].(map[string]any)
 
 			if !ok {
 				return nil, errors.New("expected type map")
@@ -830,21 +830,21 @@ var (
 				Build()
 )
 
-func (csv *OperatorCSV) findAllAnnotations() ([]map[string]interface{}, error) {
-	findAnnotationMaps := []func() (map[string]interface{}, error){
+func (csv *OperatorCSV) findAllAnnotations() ([]map[string]any, error) {
+	findAnnotationMaps := []func() (map[string]any, error){
 		csvAnnotations.MFunc(csv.data.Object),
 	}
 
-	findAnnotationSlices := []func() ([]interface{}, error){
+	findAnnotationSlices := []func() ([]any, error){
 		deploymentsAnnotations.LFunc(csv.data.Object),
-		func() ([]interface{}, error) {
-			results := []interface{}{}
+		func() ([]any, error) {
+			results := []any{}
 			err := csv.findRandomCSVAnnotations(csv.data.Object, &results, false)
 			return results, err
 		},
 	}
 
-	annotations := []map[string]interface{}{}
+	annotations := []map[string]any{}
 
 	for _, findAnnotation := range findAnnotationMaps {
 		result, err := findAnnotation()
@@ -870,7 +870,7 @@ func (csv *OperatorCSV) findAllAnnotations() ([]map[string]interface{}, error) {
 		}
 
 		for _, result := range results {
-			annotationResult := result.(map[string]interface{})
+			annotationResult := result.(map[string]any)
 			annotations = append(annotations, annotationResult)
 		}
 	}
@@ -880,7 +880,7 @@ func (csv *OperatorCSV) findAllAnnotations() ([]map[string]interface{}, error) {
 
 var annotations = utils.Lens().M("metadata").M("annotations").Build()
 
-func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]interface{}, results *[]interface{}, underMetadata bool) error {
+func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]any, results *[]any, underMetadata bool) error {
 	annos, err := annotations.M(root)
 
 	if err != nil && !errors.Is(err, utils.ErrNotFound) {
@@ -902,10 +902,10 @@ func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]interface{}, re
 			isUnderMetadata = true
 		}
 
-		if slicev, ok := root[key].([]interface{}); ok {
+		if slicev, ok := root[key].([]any); ok {
 
 			for i := range slicev {
-				if datav, ok := slicev[i].(map[string]interface{}); ok {
+				if datav, ok := slicev[i].(map[string]any); ok {
 					err := csv.findRandomCSVAnnotations(datav, results, isUnderMetadata)
 
 					if err != nil {
@@ -915,7 +915,7 @@ func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]interface{}, re
 			}
 		}
 
-		if datav, ok := root[key].(map[string]interface{}); ok {
+		if datav, ok := root[key].(map[string]any); ok {
 			err := csv.findRandomCSVAnnotations(datav, results, isUnderMetadata)
 
 			if err != nil {
@@ -927,7 +927,7 @@ func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]interface{}, re
 	return nil
 }
 
-func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]interface{}, specs *[]NamedPullSpec) error {
+func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]any, specs *[]NamedPullSpec) error {
 	for rKey := range root {
 		key := rKey
 		val := root[key]
@@ -946,10 +946,10 @@ func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]i
 			continue
 		}
 
-		if slicev, ok := root[key].([]interface{}); ok {
+		if slicev, ok := root[key].([]any); ok {
 
 			for i := range slicev {
-				if datav, ok := slicev[i].(map[string]interface{}); ok {
+				if datav, ok := slicev[i].(map[string]any); ok {
 					err := csv.findPotentialPullSpecsNotInAnnotations(datav, specs)
 
 					if err != nil {
@@ -959,7 +959,7 @@ func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]i
 			}
 		}
 
-		if datav, ok := root[key].(map[string]interface{}); ok {
+		if datav, ok := root[key].(map[string]any); ok {
 			err := csv.findPotentialPullSpecsNotInAnnotations(datav, specs)
 
 			if err != nil {
