@@ -11,8 +11,8 @@ import (
 	. "github.com/benjamintf1/unmarshalledmatchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
+	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
 	"gopkg.in/yaml.v3"
 )
 
@@ -35,13 +35,15 @@ var _ = Describe("pinning", func() {
 		// 	Delims("{", "}").Parse(CSV_TEMPLATE_WITH_RELATED_IMAGES))
 		resolved = template.Must(template.New("resolved").Parse(CSV_RESOLVED_TEMPLATE))
 
-		dir, _ = ioutil.TempDir("", "script")
-		manifestDir, _ = ioutil.TempDir("", "pinning_test_")
+		dir, err := ioutil.TempDir("", "script")
+		Expect(err).To(Succeed())
+		manifestDir, err = ioutil.TempDir("", "pinning_test_")
+		Expect(err).To(Succeed())
 		csvFilePath = filepath.Join(manifestDir, "clusterserviceversion.yaml")
 
 		resolverScript := filepath.Join(dir, "resolver.sh")
 
-		ioutil.WriteFile(resolverScript, []byte(`#!/bin/bash
+		err = ioutil.WriteFile(resolverScript, []byte(`#!/bin/bash
 if [ "$1" == "registry.example.com/eggs:9.8" ]; then
    echo -n "2"
    exit 0
@@ -54,6 +56,7 @@ fi
 
 exit 1
 `), 0700)
+		Expect(err).To(Succeed())
 
 		resolver, _ = imageresolver.GetResolver(imageresolver.ResolverScript, map[string]string{
 			"path": resolverScript,
@@ -89,7 +92,7 @@ exit 1
 			extractData := bytes.Buffer{}
 			extract(manifestDir, &extractData)
 
-			extractJson := []interface{}{}
+			extractJson := []any{}
 
 			Expect(json.Unmarshal(extractData.Bytes(), &extractJson)).To(Succeed())
 			Expect(extractJson).To(HaveLen(2))
@@ -118,7 +121,7 @@ exit 1
 					},
 				})
 
-			extractData, _ = json.Marshal([]interface{}{
+			extractData, _ = json.Marshal([]any{
 				"registry.example.com/eggs:9.8",
 				"registry.example.com/maps/spam-operator:1.2",
 			})
@@ -129,11 +132,11 @@ exit 1
 			err := resolve(resolver, bytes.NewReader(extractData), &resolveData)
 			Expect(err).To(Succeed())
 
-			resolveJson := map[string]interface{}{}
+			resolveJson := map[string]any{}
 			Expect(json.Unmarshal(resolveData.Bytes(), &resolveJson)).To(Succeed())
 			Expect(resolveJson).To(HaveLen(2))
 			Expect(resolveJson).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
 				}))
@@ -177,7 +180,7 @@ exit 1
 
 			resolvedFile = resolvedFileBuffer.Bytes()
 
-			resolveData, _ = json.Marshal(map[string]interface{}{
+			resolveData, _ = json.Marshal(map[string]any{
 				"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 				"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
 			})
@@ -261,7 +264,7 @@ exit 1
 			extractAnswer, err := os.ReadFile(outputExtract.Name)
 			Expect(err).To(Succeed())
 
-			extractJson := []interface{}{}
+			extractJson := []any{}
 
 			Expect(json.Unmarshal(extractAnswer, &extractJson)).To(Succeed())
 			Expect(extractJson).To(HaveLen(2))
@@ -271,11 +274,11 @@ exit 1
 			resolveAnswer, err := os.ReadFile(outputReplace.Name)
 			Expect(err).To(Succeed())
 
-			resolveJson := map[string]interface{}{}
+			resolveJson := map[string]any{}
 			Expect(json.Unmarshal(resolveAnswer, &resolveJson)).To(Succeed())
 			Expect(resolveJson).To(HaveLen(2))
 			Expect(resolveJson).To(Equal(
-				map[string]interface{}{
+				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
 				}))
@@ -284,7 +287,7 @@ exit 1
 			Expect(err).To(Succeed())
 			Expect(replaceAnswer).To(MatchUnorderedYAML(resolvedFile))
 
-			validYaml := map[string]interface{}{}
+			validYaml := map[string]any{}
 			Expect(yaml.Unmarshal(replaceAnswer, &validYaml)).To(Succeed())
 		})
 	})

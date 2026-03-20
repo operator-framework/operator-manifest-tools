@@ -60,13 +60,13 @@ var (
 	full      = regexp.MustCompile(mustExecute(templates, `^{{ template "pullspec" . }}$`, "alnum", alnum, "name", name, "base16", base16))
 )
 
-// mustExecute executes a template, panicing on error
-func mustExecute(templates *template.Template, templ string, data ...interface{}) string {
+// mustExecute executes a template, panicking on error
+func mustExecute(templates *template.Template, templ string, data ...any) string {
 	if len(data)%2 != 0 {
 		panic("data length must be 2")
 	}
 
-	templateData := map[string]interface{}{}
+	templateData := map[string]any{}
 
 	for i := 0; i < len(data); i = i + 2 {
 		key := data[i].(string)
@@ -98,16 +98,22 @@ type Heuristic func(text string) [][]int
 
 // DefaultHeuristic attempts to find all pullspecs in arbitrary structured/unstructured text.
 // Returns a list of (start, end) tuples such that:
-//     text[start:end] == <n-th pullspec in text> for all (start, end)
+//
+//	text[start:end] == <n-th pullspec in text> for all (start, end)
+//
 // The basic idea:
 // - Find continuous sequences of characters that might appear in a pullspec
 //   - That being <alphanumeric> + "/-._@:"
+//
 // - For each such sequence:
 //   - Strip non-alphanumeric characters from both ends
 //   - Match remainder against the pullspec regex
+//
 // Put simply, this heuristic should find anything in the form:
-//     registry/namespace*/repo:tag
-//     registry/namespace*/repo@sha256:digest
+//
+//	registry/namespace*/repo:tag
+//	registry/namespace*/repo@sha256:digest
+//
 // Where registry must contain at least one '.' and all parts follow various
 // restrictions on the format (most typical pullspecs should be caught). Any
 // number of namespaces, including 0, is valid.

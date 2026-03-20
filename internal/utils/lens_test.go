@@ -6,15 +6,15 @@ import (
 )
 
 var _ = Describe("lens", func() {
-	var data map[string]interface{}
+	var data map[string]any
 	BeforeEach(func() {
-		data = map[string]interface{}{
+		data = map[string]any{
 			"a": "b",
-			"c": []interface{}{
-				map[string]interface{}{
+			"c": []any{
+				map[string]any{
 					"d": 1,
 				},
-				map[string]interface{}{
+				map[string]any{
 					"d": 2,
 				},
 			},
@@ -63,7 +63,7 @@ var _ = Describe("lens", func() {
 		myLens := Lens().M("c").Apply(Lens().M("d").Build()).Build()
 		answer, err := myLens.L(data)
 		Expect(err).To(Succeed())
-		Expect(answer).To(Equal([]interface{}{1, 2}))
+		Expect(answer).To(Equal([]any{1, 2}))
 
 		myLens = Lens().M("c").Apply(Lens().M("nothere").Build()).Build()
 		answer, err = myLens.L(data)
