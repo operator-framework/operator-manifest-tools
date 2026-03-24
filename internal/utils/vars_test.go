@@ -3,7 +3,6 @@ package utils
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -31,11 +30,11 @@ var _ = Describe("Vars", func() {
 		})
 
 		It("should and open a file if a valid filepath", func() {
-			f, err := ioutil.TempFile(os.TempDir(), "file-*.txt")
+			f, err := os.CreateTemp(os.TempDir(), "file-*.txt")
 			Expect(err).To(Succeed())
 			defer os.Remove(f.Name())
 
-			ioutil.WriteFile(f.Name(), []byte("foo"), 0666)
+			os.WriteFile(f.Name(), []byte("foo"), 0666)
 
 			sut.Name = f.Name()
 

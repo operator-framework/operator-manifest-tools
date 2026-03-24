@@ -28,7 +28,7 @@ type errBase struct {
 	err   error
 }
 
-func NewError(cause error, format string, args ...interface{}) error {
+func NewError(cause error, format string, args ...any) error {
 	return errBase{
 		err:   fmt.Errorf(format, args...),
 		cause: cause,

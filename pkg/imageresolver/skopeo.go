@@ -44,7 +44,7 @@ const (
 	timeout = "300s"
 )
 
-func (skopeo *Skopeo) getSkopeoResults(args ...string) ([]byte, map[string]interface{}, error) {
+func (skopeo *Skopeo) getSkopeoResults(args ...string) ([]byte, map[string]any, error) {
 	baseArgs := []string{"--command-timeout", timeout, "inspect"}
 	name := "skopeo"
 	if skopeo.path != "" {
@@ -57,7 +57,7 @@ func (skopeo *Skopeo) getSkopeoResults(args ...string) ([]byte, map[string]inter
 		return nil, nil, err
 	}
 
-	var skopeoJSON map[string]interface{}
+	var skopeoJSON map[string]any
 
 	err = json.Unmarshal(skopeoRaw, &skopeoJSON)
 	if err != nil {
@@ -85,9 +85,9 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 	retryAttempts := 3
 
 	var skopeoRaw []byte
-	var skopeoJSON map[string]interface{}
+	var skopeoJSON map[string]any
 
-	for i := 0; i < retryAttempts; i++ {
+	for range retryAttempts {
 		rawArgs := append(args, "--raw")
 		log.Println("skopeo inspect raw args are ", rawArgs)
 		skopeoRaw, skopeoJSON, err = skopeo.getSkopeoResults(rawArgs...)

@@ -61,12 +61,12 @@ var (
 )
 
 // mustExecute executes a template, panicing on error
-func mustExecute(templates *template.Template, templ string, data ...interface{}) string {
+func mustExecute(templates *template.Template, templ string, data ...any) string {
 	if len(data)%2 != 0 {
 		panic("data length must be 2")
 	}
 
-	templateData := map[string]interface{}{}
+	templateData := map[string]any{}
 
 	for i := 0; i < len(data); i = i + 2 {
 		key := data[i].(string)

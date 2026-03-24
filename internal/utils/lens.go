@@ -7,19 +7,19 @@ import (
 
 // lensBuilder is used to construct lens
 type lensBuilder struct {
-	funcs []func(interface{}) (interface{}, error)
+	funcs []func(any) (any, error)
 	path  []string
 }
 
-// lens holds a series of functions that helps navigate a map[string]interface{} data structure
+// lens holds a series of functions that helps navigate a map[string]any data structure
 type lens struct {
-	funcs []func(interface{}) (interface{}, error)
+	funcs []func(any) (any, error)
 }
 
 // newLens creates a new lens builder
 func Lens() *lensBuilder {
 	return &lensBuilder{
-		funcs: []func(interface{}) (interface{}, error){},
+		funcs: []func(any) (any, error){},
 		path:  []string{},
 	}
 }
@@ -27,19 +27,18 @@ func Lens() *lensBuilder {
 // L will create a step on a lens to navigate a slice by integer
 func (d *lensBuilder) L(i int) *lensBuilder {
 	d.path = append(d.path, strconv.Itoa(i))
-	d.funcs = append(d.funcs, func(data interface{}) (interface{}, error) {
-		localI := i
-		slice, ok := data.([]interface{})
+	d.funcs = append(d.funcs, func(data any) (any, error) {
+		slice, ok := data.([]any)
 
 		if !ok {
-			return nil, NewError(ErrNotFound, "expected a []interface{} type on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a []any type on step %s path %s", strconv.Itoa(i), strings.Join(d.path, ","))
 		}
 
 		if i < 0 || i >= len(slice) {
-			return nil, NewError(ErrNotFound, "not found on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "not found on step %s path %s", strconv.Itoa(i), strings.Join(d.path, ","))
 		}
 
-		return slice[localI], nil
+		return slice[i], nil
 	})
 
 	return d
@@ -48,17 +47,16 @@ func (d *lensBuilder) L(i int) *lensBuilder {
 // M will create a step on a lens to navigate a map by a key
 func (d *lensBuilder) M(key string) *lensBuilder {
 	d.path = append(d.path, key)
-	d.funcs = append(d.funcs, func(data interface{}) (interface{}, error) {
-		localKey := key
-		mmap, ok := data.(map[string]interface{})
+	d.funcs = append(d.funcs, func(data any) (any, error) {
+		mmap, ok := data.(map[string]any)
 
 		if !ok {
-			return nil, NewError(ErrNotFound, "expected a map[string]interface{} type on step %s path %s", localKey, strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a map[string]any type on step %s path %s", key, strings.Join(d.path, ","))
 		}
 
 		v, ok := mmap[key]
 		if !ok {
-			return nil, NewError(ErrNotFound, "not found on step %s path %s", localKey, strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "not found on step %s path %s", key, strings.Join(d.path, ","))
 		}
 
 		return v, nil
@@ -70,20 +68,19 @@ func (d *lensBuilder) M(key string) *lensBuilder {
 // lens to each element.
 func (d *lensBuilder) Apply(l lens) *lensBuilder {
 	d.path = append(d.path, "*")
-	d.funcs = append(d.funcs, func(data interface{}) (interface{}, error) {
-		localLens := l
-		slice, ok := data.([]interface{})
+	d.funcs = append(d.funcs, func(data any) (any, error) {
+		slice, ok := data.([]any)
 
 		if !ok {
-			return nil, NewError(ErrNotFound, "expected a []interface{} type on step * path %s", strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a []any type on step * path %s", strings.Join(d.path, ","))
 		}
 
-		results := make([]interface{}, 0, len(slice))
+		results := make([]any, 0, len(slice))
 
 		for i := range slice {
 			data := slice[i]
 
-			result, err := localLens.Lookup(data)
+			result, err := l.Lookup(data)
 
 			if err != nil {
 				continue
@@ -101,12 +98,8 @@ func (d *lensBuilder) Apply(l lens) *lensBuilder {
 
 // Build finalizes the lens steps and makes it able to return results.
 func (d *lensBuilder) Build() lens {
-	funcs := make([]func(interface{}) (interface{}, error), 0, len(d.funcs))
-
-	for i := range d.funcs {
-		localFunc := d.funcs[i]
-		funcs = append(funcs, localFunc)
-	}
+	funcs := make([]func(any) (any, error), 0, len(d.funcs))
+	funcs = append(funcs, d.funcs...)
 
 	return lens{
 		funcs: funcs,
@@ -114,7 +107,7 @@ func (d *lensBuilder) Build() lens {
 }
 
 // Lookup will run the lens against data, returning a result or error.
-func (l lens) Lookup(data interface{}) (result interface{}, err error) {
+func (l lens) Lookup(data any) (result any, err error) {
 	result = data
 	for _, fun := range l.funcs {
 		result, err = fun(result)
@@ -128,17 +121,17 @@ func (l lens) Lookup(data interface{}) (result interface{}, err error) {
 }
 
 // L is an alias for Lookup that will attempt to map the result of the lookup to a slice.
-func (l lens) L(data interface{}) ([]interface{}, error) {
+func (l lens) L(data any) ([]any, error) {
 	answer, err := l.Lookup(data)
 
 	if err != nil {
 		return nil, err
 	}
 
-	listAnswer, ok := answer.([]interface{})
+	listAnswer, ok := answer.([]any)
 
 	if !ok {
-		return nil, NewError(nil, "expected a []interface{} type")
+		return nil, NewError(nil, "expected a []any type")
 	}
 
 	return listAnswer, nil
@@ -146,33 +139,33 @@ func (l lens) L(data interface{}) ([]interface{}, error) {
 
 // LFunc is an alias for Lookup that will attempt to map the result of the lookup to a slice and wrap
 // the results in a callback.
-func (l lens) LFunc(data interface{}) func() ([]interface{}, error) {
-	return func() ([]interface{}, error) {
+func (l lens) LFunc(data any) func() ([]any, error) {
+	return func() ([]any, error) {
 		return l.L(data)
 	}
 }
 
-// M is an alias for Lookup that will attempt to map the result of the lookup to a map[string]interface{}.
-func (l lens) M(data interface{}) (map[string]interface{}, error) {
+// M is an alias for Lookup that will attempt to map the result of the lookup to a map[string]any.
+func (l lens) M(data any) (map[string]any, error) {
 	answer, err := l.Lookup(data)
 
 	if err != nil {
 		return nil, err
 	}
 
-	mapAnswer, ok := answer.(map[string]interface{})
+	mapAnswer, ok := answer.(map[string]any)
 
 	if !ok {
-		return nil, NewError(nil, "expected a []interface{} type")
+		return nil, NewError(nil, "expected a []any type")
 	}
 
 	return mapAnswer, nil
 }
 
-// M is an alias for Lookup that will attempt to map the result of the lookup to a map[string]interface{} and wrap
+// M is an alias for Lookup that will attempt to map the result of the lookup to a map[string]any and wrap
 // the resutls in a callback.
-func (l lens) MFunc(data interface{}) func() (map[string]interface{}, error) {
-	return func() (map[string]interface{}, error) {
+func (l lens) MFunc(data any) func() (map[string]any, error) {
+	return func() (map[string]any, error) {
 		return l.M(data)
 	}
 }
