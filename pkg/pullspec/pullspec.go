@@ -446,8 +446,7 @@ func (csv *OperatorCSV) GetPullSpecs() ([]*imagename.ImageName, error) {
 	imageList := make([]*imagename.ImageName, 0, len(pullspecs))
 
 	for key := range pullspecs {
-		localKey := key
-		imageList = append(imageList, &localKey)
+		imageList = append(imageList, &key)
 	}
 
 	return imageList, nil
