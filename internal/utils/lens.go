@@ -28,18 +28,17 @@ func Lens() *lensBuilder {
 func (d *lensBuilder) L(i int) *lensBuilder {
 	d.path = append(d.path, strconv.Itoa(i))
 	d.funcs = append(d.funcs, func(data any) (any, error) {
-		localI := i
 		slice, ok := data.([]any)
 
 		if !ok {
-			return nil, NewError(ErrNotFound, "expected a []any type on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a []any type on step %s path %s", strconv.Itoa(i), strings.Join(d.path, ","))
 		}
 
 		if i < 0 || i >= len(slice) {
-			return nil, NewError(ErrNotFound, "not found on step %s path %s", strconv.Itoa(localI), strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "not found on step %s path %s", strconv.Itoa(i), strings.Join(d.path, ","))
 		}
 
-		return slice[localI], nil
+		return slice[i], nil
 	})
 
 	return d
@@ -49,16 +48,15 @@ func (d *lensBuilder) L(i int) *lensBuilder {
 func (d *lensBuilder) M(key string) *lensBuilder {
 	d.path = append(d.path, key)
 	d.funcs = append(d.funcs, func(data any) (any, error) {
-		localKey := key
 		mmap, ok := data.(map[string]any)
 
 		if !ok {
-			return nil, NewError(ErrNotFound, "expected a map[string]any type on step %s path %s", localKey, strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "expected a map[string]any type on step %s path %s", key, strings.Join(d.path, ","))
 		}
 
 		v, ok := mmap[key]
 		if !ok {
-			return nil, NewError(ErrNotFound, "not found on step %s path %s", localKey, strings.Join(d.path, ","))
+			return nil, NewError(ErrNotFound, "not found on step %s path %s", key, strings.Join(d.path, ","))
 		}
 
 		return v, nil
@@ -71,7 +69,6 @@ func (d *lensBuilder) M(key string) *lensBuilder {
 func (d *lensBuilder) Apply(l lens) *lensBuilder {
 	d.path = append(d.path, "*")
 	d.funcs = append(d.funcs, func(data any) (any, error) {
-		localLens := l
 		slice, ok := data.([]any)
 
 		if !ok {
@@ -83,7 +80,7 @@ func (d *lensBuilder) Apply(l lens) *lensBuilder {
 		for i := range slice {
 			data := slice[i]
 
-			result, err := localLens.Lookup(data)
+			result, err := l.Lookup(data)
 
 			if err != nil {
 				continue
@@ -102,11 +99,7 @@ func (d *lensBuilder) Apply(l lens) *lensBuilder {
 // Build finalizes the lens steps and makes it able to return results.
 func (d *lensBuilder) Build() lens {
 	funcs := make([]func(any) (any, error), 0, len(d.funcs))
-
-	for i := range d.funcs {
-		localFunc := d.funcs[i]
-		funcs = append(funcs, localFunc)
-	}
+	funcs = append(funcs, d.funcs...)
 
 	return lens{
 		funcs: funcs,
