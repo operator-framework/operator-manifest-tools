@@ -36,8 +36,15 @@ var _ = Describe("pinning", func() {
 
 		dir, err := os.MkdirTemp("", "script")
 		Expect(err).To(Succeed())
+		DeferCleanup(func() {
+			Expect(os.RemoveAll(dir)).To(Succeed())
+		})
+
 		manifestDir, err = os.MkdirTemp("", "pinning_test_")
 		Expect(err).To(Succeed())
+		DeferCleanup(func() {
+			Expect(os.RemoveAll(manifestDir)).To(Succeed())
+		})
 		csvFilePath = filepath.Join(manifestDir, "clusterserviceversion.yaml")
 
 		resolverScript := filepath.Join(dir, "resolver.sh")
