@@ -15,7 +15,7 @@ clean:
 	rm -rf ./docs
 
 test: ginkgo
-	$(GINKGO) -r --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress ./...
+	$(GINKGO) -r --randomize-all --randomize-suites --fail-on-pending --cover --trace --race ./...
 
 test-integration: install
 	cd internal && tox -e integration
@@ -26,7 +26,7 @@ install:
 GINKGO=$(PROJECT_DIR)/bin/ginkgo
 LOCALBIN=$(PROJECT_DIR)/bin
 ginkgo:
-	GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/ginkgo@latest
+	GOBIN=$(LOCALBIN) go install github.com/onsi/ginkgo/v2/ginkgo@latest
 
 goreleaser:
 	@[ -f $(which goreleaser) ] || go install github.com/goreleaser/goreleaser@latest
