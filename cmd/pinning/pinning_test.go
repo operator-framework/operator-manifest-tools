@@ -12,13 +12,13 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 var _ = Describe("pinning", func() {
 	var (
 		csvOriginal *template.Template
-		//relatedImage,
+		// relatedImage,
 		resolved                               *template.Template
 		manifestDir, csvFilePath               string
 		eggsImageReference, spamImageReference string
@@ -145,7 +145,8 @@ exit 1
 				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
-				}))
+				},
+			))
 		})
 	})
 
@@ -287,7 +288,8 @@ exit 1
 				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
-				}))
+				},
+			))
 
 			replaceAnswer, err := os.ReadFile(csvFilePath)
 			Expect(err).To(Succeed())
@@ -297,7 +299,6 @@ exit 1
 			Expect(yaml.Unmarshal(replaceAnswer, &validYaml)).To(Succeed())
 		})
 	})
-
 })
 
 const CSV_TEMPLATE = `apiVersion: operators.coreos.com/v1alpha1
