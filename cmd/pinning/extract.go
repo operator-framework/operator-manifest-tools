@@ -32,10 +32,10 @@ in MANIFEST_DIR.`,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			return extractCmdData.outputFile.Init(cmd, args)
 		},
-		PostRunE: func(cmd *cobra.Command, args []string) error {
+		PostRunE: func(_ *cobra.Command, _ []string) error {
 			return extractCmdData.outputFile.Close()
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return extract(args[0], &extractCmdData.outputFile)
 		},
 	}

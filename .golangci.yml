@@ -1,34 +1,36 @@
+version: "2"
 run:
   timeout: 5m
+formatters:
+  enable:
+    - goimports
 linters:
   enable:
     - nakedret
-    - interfacer
-    - varcheck
-    - deadcode
-    - structcheck
     - misspell
-    - maligned
     - ineffassign
     - goconst
-    - goimports
     - errcheck
     - dupl
     - unparam
-    - golint
+    - revive
     - staticcheck
     - unused
-    - gosimple
     - unconvert
     - gocyclo
     - gosec
+  settings:
+    revive:
+      rules:
+        - name: dot-imports
+          disabled: true
+        - name: var-naming
+          arguments:
+            - []
+            - []
+            - - skipPackageNameChecks: true
 issues:
   exclude-rules:
-    # Allow dot imports for ginkgo and gomega
-    - source: ginkgo|gomega
-      linters:
-        - golint
-      text: 'should not use dot imports'
 
     - linters:
         - gosec

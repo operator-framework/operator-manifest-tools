@@ -17,6 +17,18 @@ jobs:
       with:
         go-version-file: go.mod
 
+    - name: Tidy
+      run: make tidy
+
+    - name: Vet
+      run: make vet
+
+    - name: Format
+      run: make fmt
+
+    - name: Run golangci linting checks
+      run: make lint
+
     - name: Build
       run: go build -v ./...
 

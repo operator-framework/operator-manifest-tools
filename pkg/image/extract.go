@@ -1,3 +1,4 @@
+// Package image provides image extraction, resolution, and replacement functionality.
 package image
 
 import (

@@ -15,10 +15,15 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+const (
+	testEggsImageRef = "registry.example.com/eggs:9.8"
+	testSpamImageRef = "registry.example.com/maps/spam-operator:1.2"
+)
+
 var _ = Describe("pinning", func() {
 	var (
 		csvOriginal *template.Template
-		//relatedImage,
+		// relatedImage,
 		resolved                               *template.Template
 		manifestDir, csvFilePath               string
 		eggsImageReference, spamImageReference string
@@ -29,10 +34,8 @@ var _ = Describe("pinning", func() {
 	)
 
 	BeforeEach(func() {
-		csvOriginal = template.Must(template.New("original").Parse(CSV_TEMPLATE))
-		// relatedImage = template.Must(template.New("relatedImage").
-		// 	Delims("{", "}").Parse(CSV_TEMPLATE_WITH_RELATED_IMAGES))
-		resolved = template.Must(template.New("resolved").Parse(CSV_RESOLVED_TEMPLATE))
+		csvOriginal = template.Must(template.New("original").Parse(csvTemplate))
+		resolved = template.Must(template.New("resolved").Parse(csvResolvedTemplate))
 
 		dir, err := os.MkdirTemp("", "script")
 		Expect(err).To(Succeed())
@@ -49,6 +52,7 @@ var _ = Describe("pinning", func() {
 
 		resolverScript := filepath.Join(dir, "resolver.sh")
 
+		//nolint:gosec // test script needs execute permission
 		err = os.WriteFile(resolverScript, []byte(`#!/bin/bash
 if [ "$1" == "registry.example.com/eggs:9.8" ]; then
    echo -n "2"
@@ -61,7 +65,7 @@ if [ "$1" == "registry.example.com/maps/spam-operator:1.2" ]; then
 fi
 
 exit 1
-`), 0700)
+`), 0o700)
 		Expect(err).To(Succeed())
 
 		resolver, _ = imageresolver.GetResolver(imageresolver.ResolverScript, map[string]string{
@@ -70,20 +74,19 @@ exit 1
 	})
 
 	AfterEach(func() {
-		//os.Remove(csvFilePath)
+		// os.Remove(csvFilePath)
 	})
 
 	Context("extract", func() {
 		BeforeEach(func() {
-			eggsImageReference = "registry.example.com/eggs:9.8"
+			eggsImageReference = testEggsImageRef
 			spamImageReference = "registry.example.com/maps/spam-operator@sha256:1"
 
-			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_RDWR, 0755)
-			defer csvFile.Close()
-
+			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_RDWR, 0o600) //nolint:gosec // test file path
 			Expect(err).To(Succeed())
+			defer func() { _ = csvFile.Close() }()
 
-			csvOriginal.Execute(csvFile,
+			Expect(csvOriginal.Execute(csvFile,
 				struct {
 					Vars map[string]string
 				}{
@@ -91,18 +94,18 @@ exit 1
 						"Eggs": eggsImageReference,
 						"Spam": spamImageReference,
 					},
-				})
+				})).To(Succeed())
 		})
 
 		It("should perform extract from csv", func() {
 			extractData := bytes.Buffer{}
-			extract(manifestDir, &extractData)
+			Expect(extract(manifestDir, &extractData)).To(Succeed())
 
-			extractJson := []any{}
+			extractJSON := []any{}
 
-			Expect(json.Unmarshal(extractData.Bytes(), &extractJson)).To(Succeed())
-			Expect(extractJson).To(HaveLen(2))
-			Expect(extractJson).To(ConsistOf(eggsImageReference, spamImageReference))
+			Expect(json.Unmarshal(extractData.Bytes(), &extractJSON)).To(Succeed())
+			Expect(extractJSON).To(HaveLen(2))
+			Expect(extractJSON).To(ConsistOf(eggsImageReference, spamImageReference))
 		})
 	})
 
@@ -110,14 +113,14 @@ exit 1
 		var extractData []byte
 
 		BeforeEach(func() {
-			eggsImageReference = "registry.example.com/eggs:9.8"
-			spamImageReference = "registry.example.com/maps/spam-operator:1.2"
+			eggsImageReference = testEggsImageRef
+			spamImageReference = testSpamImageRef
 
-			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_RDWR, 0755)
-			defer csvFile.Close()
+			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_RDWR, 0o600) //nolint:gosec // test file path
 			Expect(err).To(Succeed())
+			defer func() { _ = csvFile.Close() }()
 
-			csvOriginal.Execute(csvFile,
+			Expect(csvOriginal.Execute(csvFile,
 				struct {
 					Vars map[string]string
 				}{
@@ -125,11 +128,11 @@ exit 1
 						"Eggs": eggsImageReference,
 						"Spam": spamImageReference,
 					},
-				})
+				})).To(Succeed())
 
 			extractData, _ = json.Marshal([]any{
-				"registry.example.com/eggs:9.8",
-				"registry.example.com/maps/spam-operator:1.2",
+				testEggsImageRef,
+				testSpamImageRef,
 			})
 		})
 
@@ -138,10 +141,10 @@ exit 1
 			err := resolve(resolver, bytes.NewReader(extractData), &resolveData)
 			Expect(err).To(Succeed())
 
-			resolveJson := map[string]any{}
-			Expect(json.Unmarshal(resolveData.Bytes(), &resolveJson)).To(Succeed())
-			Expect(resolveJson).To(HaveLen(2))
-			Expect(resolveJson).To(Equal(
+			resolveJSON := map[string]any{}
+			Expect(json.Unmarshal(resolveData.Bytes(), &resolveJSON)).To(Succeed())
+			Expect(resolveJSON).To(HaveLen(2))
+			Expect(resolveJSON).To(Equal(
 				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
@@ -156,14 +159,14 @@ exit 1
 		)
 
 		BeforeEach(func() {
-			eggsImageReference = "registry.example.com/eggs:9.8"
-			spamImageReference = "registry.example.com/maps/spam-operator:1.2"
+			eggsImageReference = testEggsImageRef
+			spamImageReference = testSpamImageRef
 
-			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_WRONLY, 0755)
-			defer csvFile.Close()
+			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // test file path
 			Expect(err).To(Succeed())
+			defer func() { _ = csvFile.Close() }()
 
-			csvOriginal.Execute(csvFile,
+			Expect(csvOriginal.Execute(csvFile,
 				struct {
 					Vars map[string]string
 				}{
@@ -171,10 +174,10 @@ exit 1
 						"Eggs": eggsImageReference,
 						"Spam": spamImageReference,
 					},
-				})
+				})).To(Succeed())
 
 			var resolvedFileBuffer bytes.Buffer
-			resolved.Execute(&resolvedFileBuffer,
+			Expect(resolved.Execute(&resolvedFileBuffer,
 				struct {
 					Vars map[string]string
 				}{
@@ -182,7 +185,7 @@ exit 1
 						"Eggs": "registry.example.com/eggs@sha256:2",
 						"Spam": "registry.example.com/maps/spam-operator@sha256:1",
 					},
-				})
+				})).To(Succeed())
 
 			resolvedFile = resolvedFileBuffer.Bytes()
 
@@ -196,7 +199,7 @@ exit 1
 			err := replace(manifestDir, bytes.NewReader(resolveData))
 			Expect(err).To(Succeed())
 
-			fileData, err := os.ReadFile(csvFilePath)
+			fileData, err := os.ReadFile(csvFilePath) //nolint:gosec // test file path
 			Expect(err).To(Succeed())
 
 			Expect(fileData).To(MatchUnorderedYAML(resolvedFile))
@@ -212,14 +215,14 @@ exit 1
 		)
 
 		BeforeEach(func() {
-			eggsImageReference = "registry.example.com/eggs:9.8"
-			spamImageReference = "registry.example.com/maps/spam-operator:1.2"
+			eggsImageReference = testEggsImageRef
+			spamImageReference = testSpamImageRef
 
-			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_WRONLY, 0755)
-			defer csvFile.Close()
+			csvFile, err := os.OpenFile(csvFilePath, os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // test file path
 			Expect(err).To(Succeed())
+			defer func() { _ = csvFile.Close() }()
 
-			csvOriginal.Execute(csvFile,
+			Expect(csvOriginal.Execute(csvFile,
 				struct {
 					Vars map[string]string
 				}{
@@ -227,7 +230,7 @@ exit 1
 						"Eggs": eggsImageReference,
 						"Spam": spamImageReference,
 					},
-				})
+				})).To(Succeed())
 
 			extractFile, err = os.CreateTemp(dir, "extract")
 			Expect(err).To(Succeed())
@@ -240,7 +243,7 @@ exit 1
 			outputReplace.Name = replaceFile.Name()
 
 			var resolvedFileBuffer bytes.Buffer
-			resolved.Execute(&resolvedFileBuffer,
+			Expect(resolved.Execute(&resolvedFileBuffer,
 				struct {
 					Vars map[string]string
 				}{
@@ -248,14 +251,14 @@ exit 1
 						"Eggs": "registry.example.com/eggs@sha256:2",
 						"Spam": "registry.example.com/maps/spam-operator@sha256:1",
 					},
-				})
+				})).To(Succeed())
 
 			resolvedFile = resolvedFileBuffer.Bytes()
 		})
 
 		AfterEach(func() {
-			os.Remove(extractFile.Name())
-			os.Remove(replaceFile.Name())
+			_ = os.Remove(extractFile.Name())
+			_ = os.Remove(replaceFile.Name())
 		})
 
 		It("should replace image refs", func() {
@@ -270,26 +273,26 @@ exit 1
 			extractAnswer, err := os.ReadFile(outputExtract.Name)
 			Expect(err).To(Succeed())
 
-			extractJson := []any{}
+			extractJSON := []any{}
 
-			Expect(json.Unmarshal(extractAnswer, &extractJson)).To(Succeed())
-			Expect(extractJson).To(HaveLen(2))
-			Expect(extractJson).To(ConsistOf(eggsImageReference, spamImageReference))
+			Expect(json.Unmarshal(extractAnswer, &extractJSON)).To(Succeed())
+			Expect(extractJSON).To(HaveLen(2))
+			Expect(extractJSON).To(ConsistOf(eggsImageReference, spamImageReference))
 			Expect(err).To(Succeed())
 
 			resolveAnswer, err := os.ReadFile(outputReplace.Name)
 			Expect(err).To(Succeed())
 
-			resolveJson := map[string]any{}
-			Expect(json.Unmarshal(resolveAnswer, &resolveJson)).To(Succeed())
-			Expect(resolveJson).To(HaveLen(2))
-			Expect(resolveJson).To(Equal(
+			resolveJSON := map[string]any{}
+			Expect(json.Unmarshal(resolveAnswer, &resolveJSON)).To(Succeed())
+			Expect(resolveJSON).To(HaveLen(2))
+			Expect(resolveJSON).To(Equal(
 				map[string]any{
 					"registry.example.com/eggs:9.8":               "registry.example.com/eggs@sha256:2",
 					"registry.example.com/maps/spam-operator:1.2": "registry.example.com/maps/spam-operator@sha256:1",
 				}))
 
-			replaceAnswer, err := os.ReadFile(csvFilePath)
+			replaceAnswer, err := os.ReadFile(csvFilePath) //nolint:gosec // test file path
 			Expect(err).To(Succeed())
 			Expect(replaceAnswer).To(MatchUnorderedYAML(resolvedFile))
 
@@ -297,10 +300,9 @@ exit 1
 			Expect(yaml.Unmarshal(replaceAnswer, &validYaml)).To(Succeed())
 		})
 	})
-
 })
 
-const CSV_TEMPLATE = `apiVersion: operators.coreos.com/v1alpha1
+const csvTemplate = `apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   name: foo
@@ -318,14 +320,7 @@ spec:
                 image: {{.Vars.Eggs}}
 `
 
-const CSV_TEMPLATE_WITH_RELATED_IMAGES = CSV_TEMPLATE + `
-  relatedImages:
-    image: {{.Vars.Spam}}
-  - name: eggs
-    image: {{.Vars.Eggs}}
-`
-
-const CSV_RESOLVED_TEMPLATE = `apiVersion: operators.coreos.com/v1alpha1
+const csvResolvedTemplate = `apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   name: foo

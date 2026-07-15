@@ -1,3 +1,4 @@
+// Package pullspec implements heuristic-based image pullspec discovery and manipulation.
 package pullspec
 
 import (
@@ -19,43 +20,40 @@ const (
 )
 
 // rules
-// nolint:unused,deadcode,varcheck
 var (
 	templates = template.Must(template.New("all").Parse(""))
 	// A basic name is anything that contains only alphanumeric and name
 	// characters and starts and ends with an alphanumeric character
-	basicName = mustCompileRule(templates, "basicName",
+	_ = mustCompileRule(templates, "basicName",
 		"(?:(?:{{ .alnum }}{{ .name }}*{{ .alnum }})|{{ .alnum }})")
 
 	// A named tag is ':' followed by a basic name
-	namedTag = mustCompileRule(templates, "namedTag", `(?::{{ template "basicName" . }})`)
+	_ = mustCompileRule(templates, "namedTag", `(?::{{ template "basicName" . }})`)
 	// A digest is "@sha256:" followed by exactly 64 base16 characters
-	digest = mustCompileRule(templates, "digest", `(?:@sha256:{{ .base16 }}{{ print "{64}"}})`)
+	_ = mustCompileRule(templates, "digest", `(?:@sha256:{{ .base16 }}{{ print "{64}"}})`)
 
 	// A tag is either a named tag or a digest
-	tag = mustCompileRule(templates, "tag", `(?:{{ template "namedTag" . }}|{{ template "digest" . }})`)
+	_ = mustCompileRule(templates, "tag", `(?:{{ template "namedTag" . }}|{{ template "digest" . }})`)
 
 	// Registry is a basic name that contains at least one dot
 	// followed by an optional port number
-	registry = mustCompileRule(templates, "registry",
+	_ = mustCompileRule(templates, "registry",
 		`(?:{{ .alnum }}{{ .name }}*\.{{ .name }}*{{ .alnum }}(?::\d+)?)`)
 
 	// Namespace is a basic name
-	namespace = mustCompileRule(templates, "namespace", `{{ template "basicName" . }}`)
+	_ = mustCompileRule(templates, "namespace", `{{ template "basicName" . }}`)
 
 	// Repo is a basic name followed by a tag
 	// NOTE: Tag is REQUIRED, otherwise regex picks up too many false positives,
 	// such as URLs, math and possibly many others.
-	repo = mustCompileRule(templates, "repo", `{{ template "basicName" . }}{{ template "tag" . }}`)
+	_ = mustCompileRule(templates, "repo", `{{ template "basicName" . }}{{ template "tag" . }}`)
 
 	// Pullspec is registry/namespace*/repo
-	pullspecRule = mustCompileRule(templates, "pullspec", `{{ template "registry" . }}/(?:{{ template "namespace" . }}/)*{{ template "repo" . }}`)
+	_ = mustCompileRule(templates, "pullspec", `{{ template "registry" . }}/(?:{{ template "namespace" . }}/)*{{ template "repo" . }}`)
 )
 
 // regexes
-// nolint:unused,deadcode
 var (
-	pullspec  = regexp.MustCompile(mustExecute(templates, "{{template `pullspec` .}}", "alnum", alnum, "name", name, "base16", base16))
 	candidate = regexp.MustCompile(`[a-zA-Z0-9/\-\._@:]+`)
 	full      = regexp.MustCompile(mustExecute(templates, `^{{ template "pullspec" . }}$`, "alnum", alnum, "name", name, "base16", base16))
 )
@@ -76,7 +74,6 @@ func mustExecute(templates *template.Template, templ string, data ...any) string
 	strb := strings.Builder{}
 
 	err := template.Must(templates.Parse(templ)).Execute(&strb, templateData)
-
 	if err != nil {
 		panic(err)
 	}
@@ -85,6 +82,8 @@ func mustExecute(templates *template.Template, templ string, data ...any) string
 }
 
 // mustCompileRule compiles a template rule and panics on error
+//
+//nolint:unparam,unused // return value used for side-effect registration via blank identifiers
 func mustCompileRule(templates *template.Template, name string, templ string) *template.Template {
 	return template.Must(
 		templates.Parse(

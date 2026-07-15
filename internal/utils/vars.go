@@ -76,8 +76,7 @@ func (o *fileOrCmdParam) FromFile() error {
 		}
 	}
 
-	f, err := os.OpenFile(path, o.perm, 0755)
-
+	f, err := os.OpenFile(path, o.perm, 0o600) //nolint:gosec // path is from user CLI input
 	if err != nil {
 		return err
 	}
@@ -90,7 +89,7 @@ func (o *fileOrCmdParam) FromFile() error {
 }
 
 // Init is a function that sets up the parameter with the intended source.
-func (o *fileOrCmdParam) Init(cmd *cobra.Command, args []string) error {
+func (o *fileOrCmdParam) Init(cmd *cobra.Command, _ []string) error {
 	o.writer = cmd.OutOrStdout()
 	o.reader = cmd.InOrStdin()
 

@@ -15,15 +15,14 @@ type Script struct {
 	path string
 }
 
+// ResolveImageReference resolves an image reference to its digest form using a custom script.
 func (custom *Script) ResolveImageReference(imageReference string) (string, error) {
 	path, err := filepath.Abs(custom.path)
-
 	if err != nil {
 		return "", err
 	}
 
-	output, err := exec.Command(path, imageReference).CombinedOutput()
-
+	output, err := exec.Command(path, imageReference).CombinedOutput() //nolint:gosec // script path is user-provided CLI input
 	if err != nil {
 		return "", err
 	}

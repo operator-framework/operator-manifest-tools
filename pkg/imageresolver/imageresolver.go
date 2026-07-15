@@ -7,7 +7,7 @@ import (
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
 )
 
-// ImageResolve implements a method of identifying an image reference.
+// ImageResolver implements a method of identifying an image reference.
 type ImageResolver interface {
 	// ResolveImageReference will use the image resolver to map an image reference
 	// to the image's SHA256 value from the registry.
@@ -20,6 +20,7 @@ type commandRunner interface {
 
 type commandCreator func(name string, arg ...string) commandRunner
 
+// ResolverOption represents an image resolver type.
 type ResolverOption string
 
 func (opt *ResolverOption) String() string {
@@ -30,16 +31,18 @@ func (opt *ResolverOption) String() string {
 	return string(*opt)
 }
 
+// Supported resolver options.
 const (
 	ResolverCrane  ResolverOption = "crane"
 	ResolverSkopeo ResolverOption = "skopeo"
 	ResolverScript ResolverOption = "script"
 )
 
-var (
-	validResolvers ResolverOptions = ResolverOptions{ResolverScript, ResolverSkopeo, ResolverCrane}
-)
+const trueStr = "true"
 
+var validResolvers = ResolverOptions{ResolverScript, ResolverSkopeo, ResolverCrane}
+
+// ResolverOptions is a list of available resolver options.
 type ResolverOptions []ResolverOption
 
 func (opts ResolverOptions) String() string {
@@ -55,10 +58,12 @@ func (opts ResolverOptions) String() string {
 	return str.String()
 }
 
+// GetResolverOptions returns the list of valid resolver options.
 func GetResolverOptions() ResolverOptions {
 	return validResolvers
 }
 
+// GetResolver returns an ImageResolver for the given resolver option and arguments.
 func GetResolver(resolver ResolverOption, args map[string]string) (ImageResolver, error) {
 	path, pathOk := args["path"]
 	switch resolver {
@@ -82,12 +87,12 @@ func GetResolver(resolver ResolverOption, args map[string]string) (ImageResolver
 			opts = append(opts, WithUserPassAuth(username, args["password"]))
 		} else {
 			usedefault := args["usedefault"]
-			if usedefault == "true" {
+			if usedefault == trueStr {
 				opts = append(opts, WithDefaultKeychain())
 			}
 		}
 		insecure := args["insecure"]
-		if insecure == "true" {
+		if insecure == trueStr {
 			opts = append(opts, Insecure())
 		}
 

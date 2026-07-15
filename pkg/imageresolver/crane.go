@@ -1,3 +1,4 @@
+// Package imageresolver provides image reference resolution to digests.
 package imageresolver
 
 import (
@@ -7,7 +8,7 @@ import (
 
 var _ ImageResolver = CraneResolver{}
 
-// DefaultResolver uses the containers series of libraries to resolve image digests
+// CraneResolver uses the go-containerregistry library to resolve image digests.
 type CraneResolver struct {
 	authenticator authn.Authenticator
 	useDefault    bool
@@ -24,7 +25,7 @@ func WithUserPassAuth(username, password string) CraneOption {
 	}
 }
 
-// WithDefaultAuth returns a CraneOption that sets the auth to the default keychain
+// WithDefaultKeychain returns a CraneOption that sets the auth to the default keychain.
 func WithDefaultKeychain() CraneOption {
 	return func(res *CraneResolver) {
 		res.useDefault = true
@@ -48,6 +49,7 @@ func NewCraneResolver(opts ...CraneOption) CraneResolver {
 	return res
 }
 
+// ResolveImageReference resolves an image reference to its digest form.
 func (res CraneResolver) ResolveImageReference(imageReference string) (string, error) {
 	var digest string
 	var err error

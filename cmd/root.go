@@ -1,3 +1,4 @@
+// Package cmd implements the CLI commands for operator-manifest-tools.
 package cmd
 
 import (
@@ -11,9 +12,12 @@ import (
 )
 
 var (
-	Version = "" // set at compile time with -ldflags "-X versserv/cmd.Version=x.y.yz"
-	Commit  = ""
-	Date    = ""
+	// Version is set at compile time with -ldflags.
+	Version = ""
+	// Commit is set at compile time with -ldflags.
+	Commit = ""
+	// Date is set at compile time with -ldflags.
+	Date = ""
 
 	verbose bool
 )
@@ -23,7 +27,7 @@ var rootCmd = &cobra.Command{
 	Use:   "operator-manifest-tools",
 	Short: "",
 	Long:  ``,
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+	PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 		if !verbose {
 			log.SetOutput(io.Discard)
 		} else {
@@ -35,7 +39,7 @@ var rootCmd = &cobra.Command{
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version of the tool.",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Println("version:", Version)
 		fmt.Println("commit:", Commit)
 		fmt.Println("date:", Date)
@@ -58,6 +62,7 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 }
 
+// Root returns the root cobra command.
 func Root() *cobra.Command {
 	return rootCmd
 }

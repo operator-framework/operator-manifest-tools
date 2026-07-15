@@ -19,14 +19,16 @@ var _ = Describe("script image resolver", func() {
 
 		goodScript = filepath.Join(dir, "good.sh")
 		badScript = filepath.Join(dir, "bad.sh")
+		//nolint:gosec // test scripts need execute permission
 		Expect(os.WriteFile(goodScript, []byte(`#!/bin/bash
 echo -n "foo"
 exit 0
-`), 0700)).To(Succeed())
+`), 0o700)).To(Succeed())
 
+		//nolint:gosec // test scripts need execute permission
 		Expect(os.WriteFile(badScript, []byte(`#!/bin/bash
 exit 1
-`), 0700)).To(Succeed())
+`), 0o700)).To(Succeed())
 	})
 
 	It("should return results", func() {

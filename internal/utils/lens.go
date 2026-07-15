@@ -16,8 +16,8 @@ type lens struct {
 	funcs []func(any) (any, error)
 }
 
-// newLens creates a new lens builder
-func Lens() *lensBuilder {
+// Lens creates a new lens builder for navigating nested data structures.
+func Lens() *lensBuilder { //nolint:revive // unexported return type is intentional
 	return &lensBuilder{
 		funcs: []func(any) (any, error){},
 		path:  []string{},
@@ -81,7 +81,6 @@ func (d *lensBuilder) Apply(l lens) *lensBuilder {
 			data := slice[i]
 
 			result, err := l.Lookup(data)
-
 			if err != nil {
 				continue
 			}
@@ -111,19 +110,17 @@ func (l lens) Lookup(data any) (result any, err error) {
 	result = data
 	for _, fun := range l.funcs {
 		result, err = fun(result)
-
 		if err != nil {
-			return
+			return result, err
 		}
 	}
 
-	return
+	return result, err
 }
 
 // L is an alias for Lookup that will attempt to map the result of the lookup to a slice.
 func (l lens) L(data any) ([]any, error) {
 	answer, err := l.Lookup(data)
-
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +145,6 @@ func (l lens) LFunc(data any) func() ([]any, error) {
 // M is an alias for Lookup that will attempt to map the result of the lookup to a map[string]any.
 func (l lens) M(data any) (map[string]any, error) {
 	answer, err := l.Lookup(data)
-
 	if err != nil {
 		return nil, err
 	}

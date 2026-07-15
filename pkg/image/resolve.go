@@ -7,7 +7,7 @@ import (
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
 )
 
-// Resolver takes a list of images and returns a mapping of the images to an image name with a digst.
+// Resolve takes a list of images and returns a mapping of the images to an image name with a digest.
 func Resolve(resolver imageresolver.ImageResolver, references []string) (Replacements, error) {
 	results := make(map[string]string, len(references))
 	for _, ref := range references {

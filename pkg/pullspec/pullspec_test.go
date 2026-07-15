@@ -2,6 +2,7 @@ package pullspec
 
 import (
 	"strings"
+	"text/template"
 
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
@@ -9,8 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"text/template"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -162,23 +161,31 @@ var (
 	)
 	C1 = newPullSpec(
 		"c1", "registry/namespace/spam:1", "r-registry/r-namespace/r-spam:2",
-		[]string{"spec", "install", "spec", "deployments", "0",
-			"spec", "template", "spec", "containers", "0", "image"},
+		[]string{
+			"spec", "install", "spec", "deployments", "0",
+			"spec", "template", "spec", "containers", "0", "image",
+		},
 	)
 	CE1 = newPullSpec(
 		"ce1", "eggs:1", "r-eggs:2",
-		[]string{"spec", "install", "spec", "deployments", "0",
-			"spec", "template", "spec", "containers", "0", "env", "0", "value"},
+		[]string{
+			"spec", "install", "spec", "deployments", "0",
+			"spec", "template", "spec", "containers", "0", "env", "0", "value",
+		},
 	)
 	C2 = newPullSpec(
 		"c2", "ham:1", "r-ham:2",
-		[]string{"spec", "install", "spec", "deployments", "0",
-			"spec", "template", "spec", "containers", "1", "image"},
+		[]string{
+			"spec", "install", "spec", "deployments", "0",
+			"spec", "template", "spec", "containers", "1", "image",
+		},
 	)
 	C3 = newPullSpec(
 		"c3", "jam", "r-jam:2",
-		[]string{"spec", "install", "spec", "deployments", "1",
-			"spec", "template", "spec", "containers", "0", "image"},
+		[]string{
+			"spec", "install", "spec", "deployments", "1",
+			"spec", "template", "spec", "containers", "0", "image",
+		},
 	)
 	AN1 = newPullSpec(
 		"an1", "registry.io/namespace/baz:latest", "r-registry.io/r-namespace/r-baz:latest",
@@ -186,13 +193,17 @@ var (
 	)
 	IC1 = newPullSpec(
 		"ic1", "pullspec:1", "r-pullspec:1",
-		[]string{"spec", "install", "spec", "deployments", "1",
-			"spec", "template", "spec", "initContainers", "0", "image"},
+		[]string{
+			"spec", "install", "spec", "deployments", "1",
+			"spec", "template", "spec", "initContainers", "0", "image",
+		},
 	)
 	ICE1 = newPullSpec(
 		"ice1", "pullspec:2", "r-pullspec:2",
-		[]string{"spec", "install", "spec", "deployments", "1",
-			"spec", "template", "spec", "initContainers", "0", "env", "0", "value"},
+		[]string{
+			"spec", "install", "spec", "deployments", "1",
+			"spec", "template", "spec", "initContainers", "0", "env", "0", "value",
+		},
 	)
 	AN2 = newPullSpec(
 		"an2", "registry.io/an2:1", "registry.io/r-an2:1",
@@ -208,8 +219,10 @@ var (
 	)
 	AN5 = newPullSpec(
 		"an5", "registry.io/an5:1", "registry.io/r-an5:1",
-		[]string{"spec", "install", "spec", "deployments", "0",
-			"spec", "template", "metadata", "annotations", "some_other_pullspec"},
+		[]string{
+			"spec", "install", "spec", "deployments", "0",
+			"spec", "template", "metadata", "annotations", "some_other_pullspec",
+		},
 	)
 	AN6 = newPullSpec(
 		"an6", "registry.io/an6:1", "registry.io/r-an6:1",

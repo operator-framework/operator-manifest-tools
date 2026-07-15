@@ -18,11 +18,9 @@ type replaceCmdArgs struct {
 	dryRun          bool
 }
 
-var (
-	replaceCmdData = replaceCmdArgs{
-		replacementFile: utils.NewInputParam(false),
-	}
-)
+var replaceCmdData = replaceCmdArgs{
+	replacementFile: utils.NewInputParam(false),
+}
 
 // replaceCmd represents the replace command
 var replaceCmd = &cobra.Command{
@@ -37,7 +35,7 @@ var replaceCmd = &cobra.Command{
 		replaceCmdData.replacementFile.Name = args[1]
 		return replaceCmdData.replacementFile.Init(cmd, args)
 	},
-	PostRunE: func(cmd *cobra.Command, args []string) error {
+	PostRunE: func(_ *cobra.Command, _ []string) error {
 		return replaceCmdData.replacementFile.Close()
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -62,7 +60,6 @@ func init() {
 	replaceCmd.Flags().BoolVar(&replaceCmdData.dryRun,
 		"dry-run", false, strings.ReplaceAll(`When set, replacements are not performed. This is useful to determine if the CSV is
 in a state that accepts replacements. By default this option is not set.`, "\n", " "))
-
 }
 
 // replace will read manifests from the directory and replace the images from
@@ -93,7 +90,6 @@ func replace(manifestDir string, replacementsReader io.Reader) error {
 	}
 
 	return nil
-
 }
 
 func readReplacements(r io.Reader) (image.Replacements, error) {

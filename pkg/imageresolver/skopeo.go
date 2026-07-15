@@ -25,7 +25,6 @@ type Skopeo struct {
 func NewSkopeoResolver(skopeoPath, authFile string) (*Skopeo, error) {
 	if authFile != "" {
 		_, err := os.Stat(authFile)
-
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +108,7 @@ func (skopeo *Skopeo) ResolveImageReference(imageReference string) (string, erro
 		digest, ok := skopeoJSON["Digest"].(string)
 
 		if !ok {
-			return "", errors.New("Digest not on response")
+			return "", errors.New("digest not on response")
 		}
 
 		return fmt.Sprintf("%s@%s", imageName, digest), nil
