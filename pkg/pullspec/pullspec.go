@@ -5,12 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+
+	"io/fs"
 
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
@@ -271,11 +272,14 @@ const (
 	operatorCsvKind = "ClusterServiceVersion"
 )
 
+var ()
+
 // FromDirectory creates a NewOperatorCSV from the directory path provided.
 func FromDirectory(path string, pullSpecHeuristic Heuristic) ([]*OperatorCSV, error) {
 	operatorCSVs := []*OperatorCSV{}
 
 	stat, err := os.Stat(path)
+
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, utils.NewErrIsNotDirectoryOrDoesNotExist(path)
@@ -318,6 +322,7 @@ func FromDirectory(path string, pullSpecHeuristic Heuristic) ([]*OperatorCSV, er
 		operatorCSVs = append(operatorCSVs, csv)
 		return nil
 	})
+
 	if err != nil {
 		log.Printf("failure walking the directory: %+v \n", err)
 		return nil, err
@@ -344,6 +349,7 @@ func NewOperatorCSVFromFile(
 	data := &unstructured.Unstructured{}
 
 	fileData, err := os.ReadFile(path)
+
 	if err != nil {
 		return nil, err
 	}
@@ -351,11 +357,13 @@ func NewOperatorCSVFromFile(
 	// decode YAML into unstructured.Unstructured
 	dec := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 	_, _, err = dec.Decode(fileData, nil, data)
+
 	if err != nil {
 		return nil, err
 	}
 
 	csv, err := NewOperatorCSV(path, data, pullSpecHeuristic)
+
 	if err != nil {
 		return nil, err
 	}
@@ -392,11 +400,13 @@ func (csv *OperatorCSV) Dump(writer io.Writer) error {
 	}
 
 	b, err := csv.ToYaml()
+
 	if err != nil {
 		return err
 	}
 
 	_, err = writer.Write(b)
+
 	if err != nil {
 		return err
 	}
@@ -421,6 +431,7 @@ func (csv *OperatorCSV) GetPullSpecs() ([]*imagename.ImageName, error) {
 	pullspecs := make(map[imagename.ImageName]any)
 
 	namedList, err := csv.namedPullSpecs()
+
 	if err != nil {
 		return nil, err
 	}
@@ -464,17 +475,20 @@ func (csv *OperatorCSV) ReplacePullSpecs(replacement map[imagename.ImageName]ima
 // ReplacePullSpecsEverywhere will replace image values in each pullspec throughout the entire OperatorCSV.
 func (csv *OperatorCSV) ReplacePullSpecsEverywhere(replacement map[imagename.ImageName]imagename.ImageName) error {
 	err := csv.ReplacePullSpecs(replacement)
+
 	if err != nil {
 		return err
 	}
 
 	pullspecs := []NamedPullSpec{}
 	annotationPullSpecs, err := csv.annotationPullSpecs(knownAnnotationKeys)
+
 	if err != nil {
 		return err
 	}
 
 	guessedAnnotationPullSpecs, err := csv.annotationPullSpecs(nil)
+
 	if err != nil {
 		return err
 	}
@@ -483,6 +497,7 @@ func (csv *OperatorCSV) ReplacePullSpecsEverywhere(replacement map[imagename.Ima
 	pullspecs = append(pullspecs, guessedAnnotationPullSpecs...)
 
 	err = csv.findPotentialPullSpecsNotInAnnotations(csv.data.Object, &pullspecs)
+
 	if err != nil {
 		return err
 	}
@@ -503,6 +518,7 @@ func (csv *OperatorCSV) ReplacePullSpecsEverywhere(replacement map[imagename.Ima
 // SetRelatedImages will set the related images fields based on the CSV pullspecs discovered.
 func (csv *OperatorCSV) SetRelatedImages() error {
 	namedPullspecs, err := csv.namedPullSpecs()
+
 	if err != nil {
 		return err
 	}
@@ -559,31 +575,37 @@ func (csv *OperatorCSV) namedPullSpecs() ([]NamedPullSpec, error) {
 	pullspecs := []NamedPullSpec{}
 
 	relatedImages, err := csv.relatedImagePullSpecs()
+
 	if err != nil {
 		return pullspecs, err
 	}
 
 	containers, err := csv.containerPullSpecs()
+
 	if err != nil {
 		return pullspecs, err
 	}
 
 	initContainers, err := csv.initContainerPullSpecs()
+
 	if err != nil {
 		return pullspecs, err
 	}
 
 	relatedImageEnvPullSpecs, err := csv.relatedImageEnvPullSpecs()
+
 	if err != nil {
 		return pullspecs, err
 	}
 
 	annotationPullSpecs, err := csv.annotationPullSpecs(knownAnnotationKeys)
+
 	if err != nil {
 		return pullspecs, err
 	}
 
 	guessedAnnotationPullSpecs, err := csv.annotationPullSpecs(nil)
+
 	if err != nil {
 		return pullspecs, err
 	}
@@ -602,6 +624,7 @@ var relatedImagesLens = utils.Lens().M("spec").M("relatedImages").Build()
 
 func (csv *OperatorCSV) relatedImagePullSpecs() ([]NamedPullSpec, error) {
 	lookupResultSlice, err := relatedImagesLens.L(csv.data.Object)
+
 	if err != nil {
 		if errors.Is(err, utils.ErrNotFound) {
 			return []NamedPullSpec{}, nil
@@ -616,6 +639,7 @@ func (csv *OperatorCSV) relatedImagePullSpecs() ([]NamedPullSpec, error) {
 		data := lookupResultSlice[i]
 
 		pullspec, err := NewRelatedImage(data)
+
 		if err != nil {
 			return nil, err
 		}
@@ -640,6 +664,7 @@ var initContainerLens = utils.Lens().M("spec").M("template").M("spec").M("initCo
 
 func (csv *OperatorCSV) initContainerPullSpecs() ([]NamedPullSpec, error) {
 	deployments, err := csv.deployments()
+
 	if err != nil {
 		return nil, err
 	}
@@ -675,6 +700,7 @@ var containerLens = utils.Lens().M("spec").M("template").M("spec").M("containers
 
 func (csv *OperatorCSV) containerPullSpecs() ([]NamedPullSpec, error) {
 	deployments, err := csv.deployments()
+
 	if err != nil {
 		return nil, err
 	}
@@ -683,6 +709,7 @@ func (csv *OperatorCSV) containerPullSpecs() ([]NamedPullSpec, error) {
 
 	for i := range deployments {
 		lookupResultSlice, err := containerLens.L(deployments[i])
+
 		if err != nil {
 			if errors.Is(err, utils.ErrNotFound) {
 				continue
@@ -695,6 +722,7 @@ func (csv *OperatorCSV) containerPullSpecs() ([]NamedPullSpec, error) {
 			data := lookupResultSlice[i]
 
 			pullspec, err := NewContainer(data)
+
 			if err != nil {
 				return nil, err
 			}
@@ -708,11 +736,13 @@ func (csv *OperatorCSV) containerPullSpecs() ([]NamedPullSpec, error) {
 
 func (csv *OperatorCSV) relatedImageEnvPullSpecs() ([]NamedPullSpec, error) {
 	containers, err := csv.containerPullSpecs()
+
 	if err != nil {
 		return nil, err
 	}
 
 	initContainers, err := csv.initContainerPullSpecs()
+
 	if err != nil {
 		return nil, err
 	}
@@ -763,6 +793,7 @@ func (csv *OperatorCSV) annotationPullSpecs(keyFilter []string) ([]NamedPullSpec
 	pullSpecs := []NamedPullSpec{}
 
 	annotationObjects, err := csv.findAllAnnotations()
+
 	if err != nil {
 		return nil, err
 	}
@@ -818,6 +849,7 @@ func (csv *OperatorCSV) findAllAnnotations() ([]map[string]any, error) {
 
 	for _, findAnnotation := range findAnnotationMaps {
 		result, err := findAnnotation()
+
 		if err != nil {
 			if errors.Is(err, utils.ErrNotFound) {
 				continue
@@ -830,6 +862,7 @@ func (csv *OperatorCSV) findAllAnnotations() ([]map[string]any, error) {
 
 	for _, findAnnotation := range findAnnotationSlices {
 		results, err := findAnnotation()
+
 		if err != nil {
 			if errors.Is(err, utils.ErrNotFound) {
 				continue
@@ -871,9 +904,11 @@ func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]any, results *[
 		}
 
 		if slicev, ok := root[key].([]any); ok {
+
 			for i := range slicev {
 				if datav, ok := slicev[i].(map[string]any); ok {
 					err := csv.findRandomCSVAnnotations(datav, results, isUnderMetadata)
+
 					if err != nil {
 						return err
 					}
@@ -883,6 +918,7 @@ func (csv *OperatorCSV) findRandomCSVAnnotations(root map[string]any, results *[
 
 		if datav, ok := root[key].(map[string]any); ok {
 			err := csv.findRandomCSVAnnotations(datav, results, isUnderMetadata)
+
 			if err != nil {
 				return err
 			}
@@ -912,9 +948,11 @@ func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]a
 		}
 
 		if slicev, ok := root[key].([]any); ok {
+
 			for i := range slicev {
 				if datav, ok := slicev[i].(map[string]any); ok {
 					err := csv.findPotentialPullSpecsNotInAnnotations(datav, specs)
+
 					if err != nil {
 						return err
 					}
@@ -924,6 +962,7 @@ func (csv *OperatorCSV) findPotentialPullSpecsNotInAnnotations(root map[string]a
 
 		if datav, ok := root[key].(map[string]any); ok {
 			err := csv.findPotentialPullSpecsNotInAnnotations(datav, specs)
+
 			if err != nil {
 				return err
 			}
