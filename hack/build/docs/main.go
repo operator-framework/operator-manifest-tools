@@ -1,3 +1,4 @@
+// Package main generates CLI documentation.
 package main
 
 import (

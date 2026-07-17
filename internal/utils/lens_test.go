@@ -28,11 +28,11 @@ var _ = Describe("lens", func() {
 		Expect(answer).To(Equal("b"))
 
 		myLens = Lens().M("nothere").Build()
-		answer, err = myLens.Lookup(data)
+		_, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
 		myLens = Lens().M("a").M("deadend").Build()
-		answer, err = myLens.Lookup(data)
+		_, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 	})
 
@@ -43,19 +43,19 @@ var _ = Describe("lens", func() {
 		Expect(answer).To(Equal(1))
 
 		myLens = Lens().M("c").L(2).M("d").Build()
-		answer, err = myLens.Lookup(data)
+		_, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
 		myLens = Lens().M("c").L(-1).M("d").Build()
-		answer, err = myLens.Lookup(data)
+		_, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
 		myLens = Lens().M("c").L(0).L(0).Build()
-		answer, err = myLens.Lookup(data)
+		_, err = myLens.Lookup(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
 		myLens = Lens().M("a").Build()
-		answer, err = myLens.L(data)
+		_, err = myLens.L(data)
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -71,7 +71,7 @@ var _ = Describe("lens", func() {
 		Expect(answer).To(HaveLen(0))
 
 		myLens = Lens().M("a").Apply(Lens().M("k").Build()).Build()
-		answer, err = myLens.L(data)
+		_, err = myLens.L(data)
 		Expect(err).To(MatchError(ErrNotFound))
 
 		myLens = Lens().M("c").Apply(Lens().M("d").L(0).Build()).Build()

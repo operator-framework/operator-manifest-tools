@@ -77,14 +77,14 @@ var _ = Describe("skopeo image resolver", func() {
 		tmpDir := os.TempDir()
 		f, err := os.CreateTemp(tmpDir, "authfile")
 		Expect(err).To(Succeed())
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		_, err = f.WriteString("spam")
 		Expect(err).To(Succeed())
 		sut.authFile = filepath.Join(tmpDir, f.Name())
 
 		expected := imageName
-		resolved, err := sut.ResolveImageReference("example.com/foo/bar:latest")
+		resolved, _ := sut.ResolveImageReference("example.com/foo/bar:latest")
 		Expect(resolved).To(Equal(expected))
 		mockProvider.AssertExpectations(GinkgoT())
 		Expect(mockProvider.Calls[0].Arguments.Get(1)).To(ContainElements("--authfile", sut.authFile))
@@ -126,7 +126,6 @@ var _ = Describe("skopeo image resolver", func() {
 		Expect(mockProvider.Calls[1].Arguments.Get(1), ContainElement("--raw"))
 		Expect(mockProvider.Calls[2].Arguments.Get(1), ContainElement("--raw"))
 	})
-
 })
 
 type mockCommandRunnerProvider struct {

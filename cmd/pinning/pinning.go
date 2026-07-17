@@ -1,7 +1,9 @@
+// Package pinning implements image pinning commands for operator manifests.
 package pinning
 
 import "github.com/spf13/cobra"
 
+// PinningCmd is the root command for operator manifest image pinning.
 var PinningCmd = &cobra.Command{
 	Use:   "pinning",
 	Short: "Operator manifest image pinning",

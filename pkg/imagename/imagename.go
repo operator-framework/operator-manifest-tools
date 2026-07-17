@@ -1,3 +1,4 @@
+// Package imagename provides image name parsing and formatting.
 package imagename
 
 import (
@@ -31,7 +32,7 @@ var (
 	DefaultGetStringOptions = Registry | Tag
 
 	// ErrNoImageRepository returns when there is there is no image repository
-	ErrNoImageRepository = errors.New("No image repository specified")
+	ErrNoImageRepository = errors.New("no image repository specified")
 )
 
 // Set sets the binary flag
@@ -62,16 +63,16 @@ func (name ImageName) MarshalText() ([]byte, error) {
 }
 
 // HasDigest return true if the image uses a digest.
-func (imageName *ImageName) HasDigest() bool {
-	return strings.HasPrefix(imageName.Tag, "sha256:")
+func (name *ImageName) HasDigest() bool {
+	return strings.HasPrefix(name.Tag, "sha256:")
 }
 
 // GetRepo returns the repository of the image.
-func (imageName *ImageName) GetRepo(option FormatOption) string {
-	result := imageName.Repo
+func (name *ImageName) GetRepo(option FormatOption) string {
+	result := name.Repo
 
-	if imageName.Namespace != "" {
-		result = fmt.Sprintf("%s/%s", imageName.Namespace, result)
+	if name.Namespace != "" {
+		result = fmt.Sprintf("%s/%s", name.Namespace, result)
 	}
 
 	if option.Has(ExplicitNamespace) {
@@ -82,56 +83,53 @@ func (imageName *ImageName) GetRepo(option FormatOption) string {
 }
 
 // ToString will print the image using formatting options.
-func (imageName *ImageName) ToString(optionSet FormatOption) (string, error) {
-
-	if imageName.Repo == "" {
+func (name *ImageName) ToString(optionSet FormatOption) (string, error) {
+	if name.Repo == "" {
 		return "", ErrNoImageRepository
 	}
 
-	result := imageName.GetRepo(optionSet)
+	result := name.GetRepo(optionSet)
 
-	if optionSet.Has(Tag) && imageName.Tag != "" {
-		if imageName.HasDigest() {
-			result = fmt.Sprintf("%s@%s", result, imageName.Tag)
+	if optionSet.Has(Tag) && name.Tag != "" {
+		if name.HasDigest() {
+			result = fmt.Sprintf("%s@%s", result, name.Tag)
 		} else {
-			result = fmt.Sprintf("%s:%s", result, imageName.Tag)
+			result = fmt.Sprintf("%s:%s", result, name.Tag)
 		}
 	} else if optionSet.Has(Tag) && optionSet.Has(ExplicitTag) {
 		result = fmt.Sprintf("%s:%s", result, "latest")
 	}
 
-	if optionSet.Has(Registry) && imageName.Registry != "" {
-		result = fmt.Sprintf("%s/%s", imageName.Registry, result)
+	if optionSet.Has(Registry) && name.Registry != "" {
+		result = fmt.Sprintf("%s/%s", name.Registry, result)
 	}
 
 	return result, nil
 }
 
 // Enclose will set the organization on the image.
-func (imageName *ImageName) Enclose(organization string) {
-	if imageName.Namespace == organization {
+func (name *ImageName) Enclose(organization string) {
+	if name.Namespace == organization {
 		return
 	}
 
-	repoParts := []string{imageName.Repo}
+	repoParts := []string{name.Repo}
 
-	if imageName.Namespace != "" {
-		repoParts = append([]string{imageName.Namespace}, repoParts...)
+	if name.Namespace != "" {
+		repoParts = append([]string{name.Namespace}, repoParts...)
 	}
 
-	imageName.Namespace = organization
-	imageName.Repo = strings.Join(repoParts, "-")
+	name.Namespace = organization
+	name.Repo = strings.Join(repoParts, "-")
 }
 
 // String returns the string representation of the image using
 // the registry and tag formatting.
-func (imageName *ImageName) String() string {
-	// Guard against nil receiver; Stringer implementations should not panic.
-	if imageName == nil {
+func (name *ImageName) String() string {
+	if name == nil {
 		return invalidImageNameString
 	}
-	result, err := imageName.ToString(DefaultGetStringOptions)
-
+	result, err := name.ToString(DefaultGetStringOptions)
 	if err != nil {
 		return invalidImageNameString
 	}

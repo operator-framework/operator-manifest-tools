@@ -8,7 +8,7 @@ import (
 	"github.com/operator-framework/operator-manifest-tools/pkg/pullspec"
 )
 
-// Repleamcents contains a mapping of image names to alternative image names that should be used instead.
+// Replacements contains a mapping of image names to alternative image names that should be used instead.
 // Usually image names with tags to image names with digests.
 type Replacements map[imagename.ImageName]imagename.ImageName
 

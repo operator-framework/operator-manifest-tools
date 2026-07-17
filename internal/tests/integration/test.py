@@ -71,7 +71,7 @@ class TestPinCommand():
     def test_manifest_dir_empty(self, teardown, tmp_path):
         cmd = subprocess.run(['operator-manifest-tools', 'pinning', 'pin', tmp_path], capture_output=True)
         print({"err": cmd.stderr, "output": cmd.stderr})
-        assert 'Missing ClusterServiceVersion in operator manifests' in str(cmd.stderr)
+        assert 'missing ClusterServiceVersion in operator manifests' in str(cmd.stderr)
         assert_output_files_are_empty()
 
     def test_non_existent_manifest_dir(self, teardown):
@@ -83,7 +83,7 @@ class TestPinCommand():
     def test_multiple_csv(self, csv_filename, teardown, tmp_path):
         copy_csv_files_to_manifest_dir(csv_filename, tmp_path)
         cmd = subprocess.run(['operator-manifest-tools', 'pinning', 'pin', tmp_path], capture_output=True)
-        assert 'Operator bundle may contain only 1 CSV file, but contains more' in str(cmd.stderr)
+        assert 'operator bundle may contain only 1 CSV file, but contains more' in str(cmd.stderr)
         assert_output_files_are_empty()
 
     def test_missing_image_property_in_csv(self, teardown, tmp_path):
@@ -280,7 +280,7 @@ class TestExtractCommand():
 
     def test_manifest_dir_empty(self, teardown, tmp_path):
         cmd = subprocess.run(['operator-manifest-tools', 'pinning', 'extract', tmp_path], capture_output=True)
-        assert 'Missing ClusterServiceVersion in operator manifests' in str(cmd.stderr)
+        assert 'missing ClusterServiceVersion in operator manifests' in str(cmd.stderr)
 
     def test_non_existent_manifest_dir(self, teardown):
         cmd = subprocess.run(['operator-manifest-tools', 'pinning', 'extract', 'foo_dir'], capture_output=True)
@@ -289,7 +289,7 @@ class TestExtractCommand():
     def test_multiple_csv(self, teardown, tmp_path):
         copy_csv_files_to_manifest_dir(['multiple_csv_1.yaml', 'multiple_csv_2.yaml'], tmp_path)
         cmd = subprocess.run(['operator-manifest-tools', 'pinning', 'extract', tmp_path], capture_output=True)
-        assert 'Operator bundle may contain only 1 CSV file, but contains more' in str(cmd.stderr)
+        assert 'operator bundle may contain only 1 CSV file, but contains more' in str(cmd.stderr)
 
     @pytest.mark.parametrize('csv_filename, expected_image_references', [
         ('digest_pinning_csv.yaml', [

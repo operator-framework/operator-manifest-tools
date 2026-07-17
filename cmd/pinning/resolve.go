@@ -24,12 +24,10 @@ type resolveCmdArgs struct {
 	outputFile utils.OutputParam
 }
 
-var (
-	resolveCmdData = &resolveCmdArgs{
-		input:      utils.NewInputParam(true),
-		outputFile: utils.NewOutputParam(),
-	}
-)
+var resolveCmdData = &resolveCmdArgs{
+	input:      utils.NewInputParam(true),
+	outputFile: utils.NewOutputParam(),
+}
 
 // resolveCmd represents the resolve command
 var resolveCmd = &cobra.Command{
@@ -39,7 +37,6 @@ var resolveCmd = &cobra.Command{
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		resolveCmdData.input.Name = args[0]
 		err := resolveCmdData.input.Init(cmd, args)
-
 		if err != nil {
 			return err
 		}
@@ -48,7 +45,7 @@ var resolveCmd = &cobra.Command{
 
 		return err
 	},
-	PostRunE: func(cmd *cobra.Command, args []string) error {
+	PostRunE: func(_ *cobra.Command, _ []string) error {
 		err1 := resolveCmdData.outputFile.Close()
 		err2 := resolveCmdData.input.Close()
 
@@ -58,7 +55,7 @@ var resolveCmd = &cobra.Command{
 		return err2
 	},
 	Args: cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		resolverArgs := resolveCmdData.resolverArgs
 
 		if resolverArgs == nil {
@@ -71,7 +68,6 @@ var resolveCmd = &cobra.Command{
 
 		resolver, err := imageresolver.GetResolver(
 			imageresolver.ResolverOption(resolveCmdData.resolver), resolverArgs)
-
 		if err != nil {
 			return fmt.Errorf("failed to get a resolver: %s", err)
 		}
@@ -95,8 +91,10 @@ communication using skopeo. Uses skopeo's default if not provided.`)
 	mountResolverOpts(resolveCmd, &resolveCmdData.resolver, &resolveCmdData.resolverArgs)
 }
 
-var runSkopeoLocationCmd sync.Once
-var skopeoLocation = ""
+var (
+	runSkopeoLocationCmd sync.Once
+	skopeoLocation       = ""
+)
 
 func getSkopeoLocation() {
 	skopeoWhich, err := exec.Command("command", "-v", "skopeo").Output()

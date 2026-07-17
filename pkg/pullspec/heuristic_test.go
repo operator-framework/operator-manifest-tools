@@ -7,8 +7,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const sha = "5d141ae1081640587636880dbe8489439353df883379158fa8742d5a3be75475"
-const notB16 = "5d141ae1081640587636880dbe8489439353df883379158fa8742d5a3be7547g"
+const (
+	sha    = "5d141ae1081640587636880dbe8489439353df883379158fa8742d5a3be75475"
+	notB16 = "5d141ae1081640587636880dbe8489439353df883379158fa8742d5a3be7547g"
+)
 
 var _ = Describe("DefaultPullspecHeuristic", func() {
 	DescribeTable("matches",

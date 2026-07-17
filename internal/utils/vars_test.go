@@ -32,10 +32,10 @@ var _ = Describe("Vars", func() {
 		It("should and open a file if a valid filepath", func() {
 			f, err := os.CreateTemp(os.TempDir(), "file-*.txt")
 			Expect(err).To(Succeed())
-			defer os.Remove(f.Name())
-			defer f.Close()
+			defer func() { _ = os.Remove(f.Name()) }()
+			defer func() { _ = f.Close() }()
 
-			err = os.WriteFile(f.Name(), []byte("foo"), 0666)
+			err = os.WriteFile(f.Name(), []byte("foo"), 0o600)
 			Expect(err).To(Succeed())
 
 			sut.Name = f.Name()
@@ -55,7 +55,7 @@ var _ = Describe("Vars", func() {
 			sut.Name = "-"
 			buff := bytes.Buffer{}
 
-			io.WriteString(&buff, "foo")
+			_, _ = io.WriteString(&buff, "foo")
 			testCmd.SetIn(&buff)
 
 			err := sut.Init(testCmd, []string{})
@@ -115,7 +115,7 @@ var _ = Describe("Vars", func() {
 			err := sut.Init(testCmd, []string{})
 			Expect(err).To(Succeed())
 
-			io.WriteString(&sut, "foo")
+			_, _ = io.WriteString(&sut, "foo")
 
 			Expect(buff.String()).To(Equal("foo"))
 
