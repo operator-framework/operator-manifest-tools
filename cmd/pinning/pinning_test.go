@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imageresolver"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 const (

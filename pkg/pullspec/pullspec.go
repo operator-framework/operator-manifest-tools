@@ -14,7 +14,7 @@ import (
 
 	"github.com/operator-framework/operator-manifest-tools/internal/utils"
 	"github.com/operator-framework/operator-manifest-tools/pkg/imagename"
-	yamlv3 "gopkg.in/yaml.v3"
+	yamlv3 "go.yaml.in/yaml/v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
 )
