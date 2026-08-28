@@ -2,35 +2,35 @@ name: Go
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version-file: go.mod
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
 
-    - name: Tidy
-      run: make tidy
+      - name: Tidy
+        run: make tidy
 
-    - name: Vet
-      run: make vet
+      - name: Vet
+        run: make vet
 
-    - name: Format
-      run: make fmt
+      - name: Format
+        run: make fmt
 
-    - name: Run golangci linting checks
-      run: make lint
+      - name: Run golangci linting checks
+        run: make lint
 
-    - name: Build
-      run: go build -v ./...
+      - name: Build
+        run: go build -v ./...
 
-    - name: Test
-      run: make test
+      - name: Test
+        run: make test
